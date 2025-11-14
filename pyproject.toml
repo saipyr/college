@@ -1,0 +1,31 @@
+[project]
+name = "remotecli"
+version = "0.3.0"
+description = "SEHCS: Secure Endpoint Hardening & Compliance System (SSH/WinRM, agent, policies, RBAC, discovery, reporting)."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Your Name" }]
+dependencies = [
+    "click==8.1.7",
+    "paramiko==3.5.0",
+    "pywinrm==0.4.3",
+    "cryptography==42.0.5",
+    "bcrypt==4.2.0",
+    "PyJWT==2.9.0",
+    "fastapi==0.115.5",
+    "uvicorn==0.32.0",
+    "psutil==6.0.0",
+    "PyYAML==6.0.2",
+    "Jinja2==3.1.4",
+    "reportlab==4.2.2",
+    "requests==2.32.3",
+]
+
+[project.scripts]
+remotecli = "remotecli.cli:cli"
+remotecli-server = "remotecli.server.__main__:main"
+sehcs-agent = "remotecli.agent.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["remotecli*"]

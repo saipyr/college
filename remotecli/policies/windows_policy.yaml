@@ -1,0 +1,24 @@
+version: "2024.11"
+os: "windows"
+rules:
+  - id: "WIN-ACC-001"
+    category: "Account Policies"
+    description: "Password length >=12"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "([int](Get-ADDefaultDomainPasswordPolicy).MinPasswordLength) -ge 12"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-ADDefaultDomainPasswordPolicy -MinPasswordLength 12"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-FW-001"
+    category: "Firewall"
+    description: "Firewall enabled on all profiles"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-NetFirewallProfile | Where-Object {$_.Enabled -eq 'True'}).Count -ge 3"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-UAC-001"
+    category: "UAC"
+    description: "Admin approval mode enabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System').EnableLUA -eq 1"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System' -Name 'EnableLUA' -Value 1"]
+    severity: "medium"
+    os: "windows"

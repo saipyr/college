@@ -1,0 +1,33 @@
+
+
+python3 -m venv .venv && source .venv/bin/activate
+
+pip install -r requirements.txt && pip install -e .
+
+remotecli user add --username admin --password "ChangeMe!" --role admin
+
+remotecli policy add --file remotecli/policies/linux_policy.yaml --os linux --version 2024.11
+
+remotecli-server
+
+sehcs-agent --server-url http://localhost:8000 --token <JWT-from-/auth/login> --auto-remediate
+
+
+
+## Agent (on endpoint)
+
+```bash
+sehcs-agent --server-url https://SERVER:8000 --token <JWT> --auto-remediate
+```
+
+## Reporting
+
+- CSV: `GET /report/csv` (Admin/Auditor)
+- Dashboard: `GET /dashboard`
+
+## Notes
+
+- Policies are YAML with `rules: [{id, category, check_cmd, fix_cmd, severity, os}]`.
+- Signed policies: placeholder flag; integrate cryptographic signature next.
+- Auto-remediation runs `fix_cmd` for non-compliant rules; adjust for caution.
+- Discovery and remote exec remain available for admin ops.

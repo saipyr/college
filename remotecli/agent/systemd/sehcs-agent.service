@@ -1,0 +1,9 @@
+[Unit]
+Description=SEHCS Agent (runs compliance scan)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/default/sehcs-agent
+ExecStart=/usr/local/bin/sehcs-agent --server-url ${SEHCS_SERVER_URL} --token ${SEHCS_TOKEN} --auto-remediate

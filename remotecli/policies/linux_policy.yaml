@@ -1,0 +1,24 @@
+version: "2024.11"
+os: "linux"
+rules:
+  - id: "LIN-SSH-001"
+    category: "SSH Hardening"
+    description: "Disallow root login"
+    check_cmd: ["bash", "-lc", "grep -Ei '^PermitRootLogin\\s+no' /etc/ssh/sshd_config"]
+    fix_cmd: ["bash", "-lc", "sudo sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config && sudo systemctl reload sshd"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-FW-001"
+    category: "Firewall"
+    description: "UFW enabled"
+    check_cmd: ["bash", "-lc", "ufw status | grep -iq 'Status: active'"]
+    fix_cmd: ["bash", "-lc", "sudo ufw --force enable"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-SYSCTL-001"
+    category: "Network Hardening"
+    description: "Disable IPv6"
+    check_cmd: ["bash", "-lc", "sysctl net.ipv6.conf.all.disable_ipv6 | grep -q '= 1'"]
+    fix_cmd: ["bash", "-lc", "echo 'net.ipv6.conf.all.disable_ipv6=1' | sudo tee /etc/sysctl.d/99-ntro-ipv6.conf && sudo sysctl -p"]
+    severity: "medium"
+    os: "linux"

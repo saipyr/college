@@ -1,0 +1,108 @@
+version: "2024.11-full"
+os: "windows"
+rules:
+  - id: "WIN-ACC-001"
+    category: "Account Policies"
+    description: "Minimum password length >=12"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(net accounts) -match 'Minimum password length' -replace '\\D','' -as [int] -ge 12"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "net accounts /minpwlen:12"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-ACC-002"
+    category: "Account Policies"
+    description: "Password history >=24"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(net accounts) -match 'Password history length' -replace '\\D','' -as [int] -ge 24"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "net accounts /uniquepw:24"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-ACC-003"
+    category: "Account Policies"
+    description: "Maximum password age <=90 days"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(net accounts) -match 'Maximum password age' | ForEach-Object {($_ -split ':')[1].Trim()} | ForEach-Object {[timespan]::Parse($_).Days -le 90}"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "net accounts /maxpwage:90"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-SEC-001"
+    category: "Security Options"
+    description: "Guest account disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-LocalUser -Name 'Guest').Enabled -eq $false"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Disable-LocalUser -Name 'Guest'"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-SEC-002"
+    category: "Security Options"
+    description: "Legal notice configured"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System').LegalNoticeText -ne $null"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System' -Name 'LegalNoticeText' -Value 'Authorized use only'"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-UAC-001"
+    category: "UAC"
+    description: "Admin approval mode enabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System').EnableLUA -eq 1"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System' -Name 'EnableLUA' -Value 1"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-SVC-001"
+    category: "System Services"
+    description: "RemoteRegistry service disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-Service RemoteRegistry).StartType -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-Service -Name RemoteRegistry -StartupType Disabled"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-SVC-002"
+    category: "System Services"
+    description: "Xbox services disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "('XblAuthManager','XblGameSave','XboxGipSvc','XboxNetApiSvc' | ForEach-Object {(Get-Service $_).StartType}) -notcontains 'Automatic'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "('XblAuthManager','XblGameSave','XboxGipSvc','XboxNetApiSvc' | ForEach-Object {Set-Service -Name $_ -StartupType Disabled})"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-FW-001"
+    category: "Firewall"
+    description: "Firewall enabled on all profiles"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-NetFirewallProfile | Where-Object {$_.Enabled -eq 'True'}).Count -ge 3"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-AUDIT-001"
+    category: "Advanced Audit"
+    description: "Audit policy: account logon events enabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'Account Logon') -match 'Success.*Enabled' -and (AuditPol /get /subcategory:'Account Logon') -match 'Failure.*Enabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "AuditPol /set /subcategory:'Account Logon' /success:enable /failure:enable"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-AUDIT-002"
+    category: "Advanced Audit"
+    description: "Audit process creation enabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'Process Creation') -match 'Success.*Enabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "AuditPol /set /subcategory:'Process Creation' /success:enable"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-NET-001"
+    category: "Network"
+    description: "SMBv1 disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-WindowsOptionalFeature -Online -FeatureName SMB1Protocol).State -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol -NoRestart"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-LOCK-001"
+    category: "Account Lockout"
+    description: "Lockout threshold <= 5"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(net accounts) -match 'Lockout threshold' -replace '\\D','' -as [int] -le 5"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "net accounts /lockoutthreshold:5"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-LOCK-002"
+    category: "Account Lockout"
+    description: "Lockout duration >= 15 minutes"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(net accounts) -match 'Lockout duration' | ForEach-Object {($_ -split ':')[1].Trim()} | ForEach-Object {[timespan]::Parse($_).Minutes -ge 15}"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "net accounts /lockoutduration:15"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-UAC-002"
+    category: "UAC"
+    description: "Secure desktop prompts"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System').PromptOnSecureDesktop -eq 1"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System' -Name 'PromptOnSecureDesktop' -Value 1"]
+    severity: "medium"
+    os: "windows"

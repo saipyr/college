@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>SEHCS Dashboard</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background: #f0f0f0; }
+  </style>
+</head>
+<body>
+  <h1>SEHCS Compliance Dashboard</h1>
+  <table>
+    <thead>
+      <tr><th>Device ID</th><th>Compliance Score (%)</th></tr>
+    </thead>
+    <tbody>
+      {% for d in devices %}
+      <tr>
+        <td>{{ d.device_id }}</td>
+        <td>{{ "%.1f"|format(d.score) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

@@ -1,0 +1,157 @@
+version: "2024.11-full"
+os: "linux"
+rules:
+  - id: "LIN-FS-001"
+    category: "Filesystem"
+    description: "Blacklist unused filesystems"
+    check_cmd: ["bash", "-lc", "! lsmod | grep -E '(cramfs|udf|hfs|freevxfs|squashfs|hfsplus|jffs2|fuse|ntfs)'"]
+    fix_cmd: ["bash", "-lc", "sudo tee /etc/modprobe.d/ntro-blacklist.conf >/dev/null <<'EOF'\nblacklist cramfs\nblacklist udf\nblacklist hfs\nblacklist freevxfs\nblacklist squashfs\nblacklist hfsplus\nblacklist jffs2\nblacklist fuse\nblacklist ntfs\nEOF\nsudo update-initramfs -u || true"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-FS-002"
+    category: "Filesystem"
+    description: "Separate partitions present (/tmp,/var,/var/log,/var/log/audit)"
+    check_cmd: ["bash", "-lc", "grep -E '^(tmpfs|/dev/)' /etc/fstab | grep -E '/tmp|/var |/var/log |/var/log/audit'"]
+    fix_cmd: ["bash", "-lc", "echo 'Ensure separate partitions are configured in /etc/fstab' && exit 1"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-FS-003"
+    category: "Filesystem"
+    description: "/tmp mounted with nodev,nosuid,noexec"
+    check_cmd: ["bash", "-lc", "findmnt -no OPTIONS /tmp | grep -qi 'nodev' && findmnt -no OPTIONS /tmp | grep -qi 'nosuid' && findmnt -no OPTIONS /tmp | grep -qi 'noexec'"]
+    fix_cmd: ["bash", "-lc", "sudo mount -o remount,nodev,nosuid,noexec /tmp"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-BOOT-001"
+    category: "Boot Hardening"
+    description: "GRUB password configured"
+    check_cmd: ["bash", "-lc", "grep -E '^GRUB_PASSWORD' /etc/grub.d/* 2>/dev/null || grep -E '^set superusers' /etc/grub.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "echo 'Configure GRUB password per distribution guide' && exit 1"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-SYSCTL-001"
+    category: "Kernel Hardening"
+    description: "ASLR enabled"
+    check_cmd: ["bash", "-lc", "sysctl kernel.randomize_va_space | grep -q '= 2'"]
+    fix_cmd: ["bash", "-lc", "echo 'kernel.randomize_va_space=2' | sudo tee /etc/sysctl.d/99-ntro-aslr.conf && sudo sysctl -p /etc/sysctl.d/99-ntro-aslr.conf"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-SYSCTL-002"
+    category: "Kernel Hardening"
+    description: "ptrace restricted"
+    check_cmd: ["bash", "-lc", "sysctl kernel.yama.ptrace_scope | grep -q '= 1'"]
+    fix_cmd: ["bash", "-lc", "echo 'kernel.yama.ptrace_scope=1' | sudo tee /etc/sysctl.d/99-ntro-ptrace.conf && sudo sysctl -p /etc/sysctl.d/99-ntro-ptrace.conf"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-DUMP-001"
+    category: "Kernel Hardening"
+    description: "Core dumps disabled"
+    check_cmd: ["bash", "-lc", "sysctl fs.suid_dumpable | grep -q '= 0'"]
+    fix_cmd: ["bash", "-lc", "echo 'fs.suid_dumpable=0' | sudo tee /etc/sysctl.d/99-ntro-dump.conf && sudo sysctl -p /etc/sysctl.d/99-ntro-dump.conf"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-LOGIN-001"
+    category: "Login & Banner"
+    description: "Banner configured (/etc/issue)"
+    check_cmd: ["bash", "-lc", "test -s /etc/issue"]
+    fix_cmd: ["bash", "-lc", "echo 'Authorized use only' | sudo tee /etc/issue"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-SVC-001"
+    category: "Service Hardening"
+    description: "Disable insecure services (telnet,tftp,rsh,ftp)"
+    check_cmd: ["bash", "-lc", "for s in telnet tftp rsh ftp; do systemctl is-enabled $s 2>/dev/null | grep -q 'disabled' || exit 1; done"]
+    fix_cmd: ["bash", "-lc", "for s in telnet tftp rsh ftp; do sudo systemctl disable --now $s 2>/dev/null || true; done"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-TIME-001"
+    category: "Time Sync"
+    description: "chrony or timesyncd active"
+    check_cmd: ["bash", "-lc", "systemctl is-active chronyd || systemctl is-active systemd-timesyncd"]
+    fix_cmd: ["bash", "-lc", "sudo systemctl enable --now systemd-timesyncd || sudo systemctl enable --now chronyd"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-CRON-001"
+    category: "Cron Hardening"
+    description: "Cron service active"
+    check_cmd: ["bash", "-lc", "systemctl is-active cron || systemctl is-active crond"]
+    fix_cmd: ["bash", "-lc", "sudo systemctl enable --now cron || sudo systemctl enable --now crond"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-NET-001"
+    category: "Network Hardening"
+    description: "IPv6 disabled"
+    check_cmd: ["bash", "-lc", "sysctl net.ipv6.conf.all.disable_ipv6 | grep -q '= 1'"]
+    fix_cmd: ["bash", "-lc", "echo 'net.ipv6.conf.all.disable_ipv6=1' | sudo tee /etc/sysctl.d/99-ntro-ipv6.conf && sudo sysctl -p /etc/sysctl.d/99-ntro-ipv6.conf"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-FW-001"
+    category: "Firewall"
+    description: "UFW enabled default deny"
+    check_cmd: ["bash", "-lc", "ufw status | grep -iq 'Status: active' && ufw status | grep -iq 'Default: deny'"]
+    fix_cmd: ["bash", "-lc", "sudo ufw --force reset && sudo ufw default deny && sudo ufw --force enable"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-SSH-001"
+    category: "SSH Hardening"
+    description: "PermitRootLogin no"
+    check_cmd: ["bash", "-lc", "grep -Ei '^PermitRootLogin\\s+no' /etc/ssh/sshd_config"]
+    fix_cmd: ["bash", "-lc", "sudo sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config && sudo systemctl reload sshd || sudo systemctl reload ssh"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-SSH-002"
+    category: "SSH Hardening"
+    description: "PasswordAuthentication no"
+    check_cmd: ["bash", "-lc", "grep -Ei '^PasswordAuthentication\\s+no' /etc/ssh/sshd_config"]
+    fix_cmd: ["bash", "-lc", "sudo sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config && sudo systemctl reload sshd || sudo systemctl reload ssh"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-SSH-003"
+    category: "SSH Hardening"
+    description: "Banner configured"
+    check_cmd: ["bash", "-lc", "grep -Ei '^Banner\\s+' /etc/ssh/sshd_config"]
+    fix_cmd: ["bash", "-lc", "echo '/etc/issue' | sudo tee -a /etc/ssh/sshd_config && sudo systemctl reload sshd || sudo systemctl reload ssh"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-SUDO-001"
+    category: "Sudo"
+    description: "Sudo logs enabled"
+    check_cmd: ["bash", "-lc", "grep -E '^Defaults\\s+logfile=' /etc/sudoers /etc/sudoers.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "echo 'Defaults logfile=\"/var/log/sudo.log\"' | sudo tee /etc/sudoers.d/logging"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-PAM-001"
+    category: "PAM"
+    description: "Password length >=12"
+    check_cmd: ["bash", "-lc", "grep -E '^minlen\\s*=?\\s*12|^minlen\\s*=?\\s*[1-9][2-9]' /etc/security/pwquality.conf"]
+    fix_cmd: ["bash", "-lc", "sudo sed -i 's/^#\\?minlen.*/minlen = 12/' /etc/security/pwquality.conf"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-AUDITD-001"
+    category: "Auditd"
+    description: "auditd active"
+    check_cmd: ["bash", "-lc", "systemctl is-active auditd"]
+    fix_cmd: ["bash", "-lc", "sudo apt-get -y install auditd || sudo yum -y install audit && sudo systemctl enable --now auditd"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-AUDITD-002"
+    category: "Auditd"
+    description: "Immutable rules enforced"
+    check_cmd: ["bash", "-lc", "grep -qE '^-e\\s+2' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "echo '-e 2' | sudo tee /etc/audit/rules.d/99-immutable.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-LOG-001"
+    category: "journald"
+    description: "journald rotation configured"
+    check_cmd: ["bash", "-lc", "grep -E '^SystemMaxUse=' /etc/systemd/journald.conf"]
+    fix_cmd: ["bash", "-lc", "echo 'SystemMaxUse=256M' | sudo tee -a /etc/systemd/journald.conf && sudo systemctl restart systemd-journald"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-FILE-001"
+    category: "System Maintenance"
+    description: "No world-writable files"
+    check_cmd: ["bash", "-lc", "test -z \"$(find / -xdev -type f -perm -0002 2>/dev/null | head -n 1)\""]
+    fix_cmd: ["bash", "-lc", "echo 'Audit and remove world-writable files manually' && exit 1"]
+    severity: "medium"
+    os: "linux"
