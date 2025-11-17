@@ -92,6 +92,27 @@ rules:
     fix_cmd: ["bash", "-lc", "sudo ufw --force reset && sudo ufw default deny && sudo ufw --force enable"]
     severity: "high"
     os: "linux"
+  - id: "LIN-FW-LOG-001"
+    category: "Firewall"
+    description: "UFW logging enabled"
+    check_cmd: ["bash", "-lc", "ufw status | grep -iq 'Logging: on'"]
+    fix_cmd: ["bash", "-lc", "sudo ufw logging on"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-FW-LOOP-001"
+    category: "Firewall"
+    description: "Loopback allowed"
+    check_cmd: ["bash", "-lc", "sudo ufw status numbered | grep -iq 'ALLOW IN 127.0.0.1' || sudo ufw status | grep -iq 'Anywhere on lo' "]
+    fix_cmd: ["bash", "-lc", "sudo ufw allow in on lo && sudo ufw allow out on lo"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-IPTABLES-PERSIST-001"
+    category: "Firewall"
+    description: "iptables-persistent removed"
+    check_cmd: ["bash", "-lc", "dpkg -l | grep -q iptables-persistent && exit 1 || true"]
+    fix_cmd: ["bash", "-lc", "sudo apt-get -y remove iptables-persistent || true"]
+    severity: "medium"
+    os: "linux"
   - id: "LIN-SSH-001"
     category: "SSH Hardening"
     description: "PermitRootLogin no"
@@ -141,12 +162,117 @@ rules:
     fix_cmd: ["bash", "-lc", "echo '-e 2' | sudo tee /etc/audit/rules.d/99-immutable.rules && sudo augenrules --load || sudo service auditd restart"]
     severity: "high"
     os: "linux"
+  - id: "LIN-AUDITD-003"
+    category: "Auditd"
+    description: "Audit sudoers changes"
+    check_cmd: ["bash", "-lc", "grep -qE '^-w /etc/sudoers -p wa -k sudoers' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "echo '-w /etc/sudoers -p wa -k sudoers' | sudo tee /etc/audit/rules.d/10-sudoers.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-AUDITD-004"
+    category: "Auditd"
+    description: "Audit privileged commands"
+    check_cmd: ["bash", "-lc", "grep -qE '^-a always,exit -F arch=b64 -S execve -C uid!=euid -F euid=0 -k privileged' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "echo '-a always,exit -F arch=b64 -S execve -C uid!=euid -F euid=0 -k privileged' | sudo tee /etc/audit/rules.d/20-priv.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-RSYSLOG-001"
+    category: "rsyslog"
+    description: "rsyslog active and remote forwarding"
+    check_cmd: ["bash", "-lc", "systemctl is-active rsyslog && grep -qE '@@' /etc/rsyslog.d/*.conf 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "sudo apt-get -y install rsyslog || sudo yum -y install rsyslog; echo '*.* @@logserver.example:514' | sudo tee /etc/rsyslog.d/99-remote.conf; sudo systemctl enable --now rsyslog"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-LOGROTATE-001"
+    category: "Logging"
+    description: "logrotate configured"
+    check_cmd: ["bash", "-lc", "test -s /etc/logrotate.conf"]
+    fix_cmd: ["bash", "-lc", "echo '# ensure logrotate installed and configured' && exit 1"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-AIDE-001"
+    category: "Integrity"
+    description: "AIDE installed"
+    check_cmd: ["bash", "-lc", "command -v aide"]
+    fix_cmd: ["bash", "-lc", "sudo apt-get -y install aide || sudo yum -y install aide"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-NETMOD-001"
+    category: "Network Hardening"
+    description: "Disable dccp, tipc, rds, sctp"
+    check_cmd: ["bash", "-lc", "! lsmod | grep -E '(dccp|tipc|rds|sctp)'"]
+    fix_cmd: ["bash", "-lc", "printf 'install dccp /bin/true\ninstall tipc /bin/true\ninstall rds /bin/true\ninstall sctp /bin/true\n' | sudo tee /etc/modprobe.d/ntro-net.conf && sudo update-initramfs -u || true"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-SYSCTL-003"
+    category: "Kernel Hardening"
+    description: "Network sysctls enforced"
+    check_cmd: ["bash", "-lc", "sysctl net.ipv4.tcp_syncookies | grep -q '= 1' && sysctl net.ipv4.conf.all.rp_filter | grep -q '= 1' && sysctl net.ipv4.conf.all.accept_redirects | grep -q '= 0'"]
+    fix_cmd: ["bash", "-lc", "sudo tee /etc/sysctl.d/99-ntro-net.conf >/dev/null <<'EOF'\nnet.ipv4.tcp_syncookies=1\nnet.ipv4.conf.all.rp_filter=1\nnet.ipv4.conf.all.accept_redirects=0\nEOF\nsudo sysctl -p /etc/sysctl.d/99-ntro-net.conf"]
+    severity: "high"
+    os: "linux"
   - id: "LIN-LOG-001"
     category: "journald"
     description: "journald rotation configured"
     check_cmd: ["bash", "-lc", "grep -E '^SystemMaxUse=' /etc/systemd/journald.conf"]
     fix_cmd: ["bash", "-lc", "echo 'SystemMaxUse=256M' | sudo tee -a /etc/systemd/journald.conf && sudo systemctl restart systemd-journald"]
     severity: "medium"
+    os: "linux"
+  - id: "LIN-SSH-004"
+    category: "SSH Hardening"
+    description: "Strong ciphers configured"
+    check_cmd: ["bash", "-lc", "grep -E '^Ciphers' /etc/ssh/sshd_config | grep -qi 'aes256-ctr|chacha20-poly1305@openssh.com'"]
+    fix_cmd: ["bash", "-lc", "sudo sed -i '/^#\\?Ciphers.*/d' /etc/ssh/sshd_config; echo 'Ciphers chacha20-poly1305@openssh.com,aes256-ctr' | sudo tee -a /etc/ssh/sshd_config && sudo systemctl reload sshd || sudo systemctl reload ssh"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-SSH-005"
+    category: "SSH Hardening"
+    description: "Strong KEX configured"
+    check_cmd: ["bash", "-lc", "grep -E '^KexAlgorithms' /etc/ssh/sshd_config | grep -qi 'curve25519-sha256|diffie-hellman-group14-sha256'"]
+    fix_cmd: ["bash", "-lc", "sudo sed -i '/^#\\?KexAlgorithms.*/d' /etc/ssh/sshd_config; echo 'KexAlgorithms curve25519-sha256,diffie-hellman-group14-sha256' | sudo tee -a /etc/ssh/sshd_config && sudo systemctl reload sshd || sudo systemctl reload ssh"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-SSH-006"
+    category: "SSH Hardening"
+    description: "Strong MACs configured"
+    check_cmd: ["bash", "-lc", "grep -E '^MACs' /etc/ssh/sshd_config | grep -qi 'hmac-sha2-256|hmac-sha2-512'"]
+    fix_cmd: ["bash", "-lc", "sudo sed -i '/^#\\?MACs.*/d' /etc/ssh/sshd_config; echo 'MACs hmac-sha2-256,hmac-sha2-512' | sudo tee -a /etc/ssh/sshd_config && sudo systemctl reload sshd || sudo systemctl reload ssh"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-SSH-007"
+    category: "SSH Hardening"
+    description: "MaxAuthTries <= 3"
+    check_cmd: ["bash", "-lc", "grep -E '^MaxAuthTries' /etc/ssh/sshd_config | awk '{print $2}' | awk '{exit !($1<=3)}'"]
+    fix_cmd: ["bash", "-lc", "sudo sed -i '/^#\\?MaxAuthTries.*/d' /etc/ssh/sshd_config; echo 'MaxAuthTries 3' | sudo tee -a /etc/ssh/sshd_config && sudo systemctl reload sshd || sudo systemctl reload ssh"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-SSH-008"
+    category: "SSH Hardening"
+    description: "MaxSessions <= 10"
+    check_cmd: ["bash", "-lc", "grep -E '^MaxSessions' /etc/ssh/sshd_config | awk '{print $2}' | awk '{exit !($1<=10)}'"]
+    fix_cmd: ["bash", "-lc", "sudo sed -i '/^#\\?MaxSessions.*/d' /etc/ssh/sshd_config; echo 'MaxSessions 10' | sudo tee -a /etc/ssh/sshd_config && sudo systemctl reload sshd || sudo systemctl reload ssh"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-SSH-009"
+    category: "SSH Hardening"
+    description: "LoginGraceTime <= 30s"
+    check_cmd: ["bash", "-lc", "grep -E '^LoginGraceTime' /etc/ssh/sshd_config | awk '{print $2}' | sed 's/s$//' | awk '{exit !($1<=30)}'"]
+    fix_cmd: ["bash", "-lc", "sudo sed -i '/^#\\?LoginGraceTime.*/d' /etc/ssh/sshd_config; echo 'LoginGraceTime 30s' | sudo tee -a /etc/ssh/sshd_config && sudo systemctl reload sshd || sudo systemctl reload ssh"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-SSH-010"
+    category: "SSH Hardening"
+    description: "Forwarding disabled"
+    check_cmd: ["bash", "-lc", "grep -Ei '^X11Forwarding\\s+no' /etc/ssh/sshd_config && grep -Ei '^AllowTcpForwarding\\s+no' /etc/ssh/sshd_config"]
+    fix_cmd: ["bash", "-lc", "sudo sed -i 's/^#\\?X11Forwarding.*/X11Forwarding no/' /etc/ssh/sshd_config; sudo sed -i 's/^#\\?AllowTcpForwarding.*/AllowTcpForwarding no/' /etc/ssh/sshd_config && sudo systemctl reload sshd || sudo systemctl reload ssh"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-AUD-PART-001"
+    category: "Auditd"
+    description: "Audit logs on separate partition"
+    check_cmd: ["bash", "-lc", "findmnt /var/log/audit && grep -qE '/var/log/audit' /etc/fstab"]
+    fix_cmd: ["bash", "-lc", "echo 'Configure /var/log/audit on separate partition in /etc/fstab' && exit 1"]
+    severity: "high"
     os: "linux"
   - id: "LIN-FILE-001"
     category: "System Maintenance"

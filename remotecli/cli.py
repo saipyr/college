@@ -278,4 +278,18 @@ def user_list():
 def server(host, port):
     """Start the server API (FastAPI)."""
     import uvicorn
-    uvicorn.run("remotecli.server.app:app", host=host, port=port, reload=False)
+    import os
+    import ssl
+    certfile = os.getenv("SSL_CERTFILE")
+    keyfile = os.getenv("SSL_KEYFILE")
+    allow_http = os.getenv("ALLOW_HTTP", "0") == "1"
+    client_ca = os.getenv("SSL_CLIENT_CA")
+    require_client = os.getenv("REQUIRE_CLIENT_CERT", "0") == "1"
+    kwargs = {"host": host, "port": port, "reload": False}
+    if certfile and keyfile:
+        kwargs.update({"ssl_certfile": certfile, "ssl_keyfile": keyfile})
+        if client_ca and require_client:
+            kwargs.update({"ssl_ca_certs": client_ca, "ssl_cert_reqs": ssl.CERT_REQUIRED})
+    elif not allow_http:
+        raise RuntimeError("TLS is required. Set SSL_CERTFILE and SSL_KEYFILE or ALLOW_HTTP=1 for non-production.")
+    uvicorn.run("remotecli.server.app:app", **kwargs)

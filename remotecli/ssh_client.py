@@ -2,13 +2,25 @@ import sys
 import socket
 import select
 import paramiko
+import os
 import termios
 import tty
 
 
 def _connect_ssh(host, port, username, password=None, key_file=None, timeout=30):
     client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    known_hosts = os.getenv("SSH_KNOWN_HOSTS")
+    if known_hosts:
+        try:
+            client.load_host_keys(known_hosts)
+        except Exception:
+            client.load_system_host_keys()
+    else:
+        client.load_system_host_keys()
+    if os.getenv("SSH_ALLOW_AUTOADD", "0") == "1":
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    else:
+        client.set_missing_host_key_policy(paramiko.RejectPolicy())
     try:
         client.connect(
             hostname=host,

@@ -1,5 +1,6 @@
 import sqlite3
 import time
+import base64
 from typing import Optional, List, Tuple
 from .config import DB_PATH, ensure_app_dirs
 from .security import encrypt_dict, decrypt_dict, hash_password
@@ -84,13 +85,65 @@ def init_db():
     )
     """)
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS policy_keys (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        key_id TEXT UNIQUE NOT NULL,
-        secret BLOB NOT NULL,
-        active INTEGER NOT NULL DEFAULT 0,
-        created_ts INTEGER NOT NULL
-    )
+        CREATE TABLE IF NOT EXISTS policy_keys (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key_id TEXT UNIQUE NOT NULL,
+            secret BLOB NOT NULL,
+            active INTEGER NOT NULL DEFAULT 0,
+            created_ts INTEGER NOT NULL
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS exec_allowlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            host TEXT NOT NULL,
+            channel TEXT NOT NULL CHECK (channel IN ('ssh','winrm')),
+            min_role TEXT NOT NULL CHECK (min_role IN ('admin','auditor','readonly')),
+            UNIQUE(host, channel)
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS audit_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ts INTEGER NOT NULL,
+            event_type TEXT NOT NULL,
+            actor TEXT,
+            details TEXT,
+            key TEXT
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS policy_overrides (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_id TEXT NOT NULL,
+            rule_id TEXT NOT NULL,
+            waived INTEGER NOT NULL,
+            expires_ts INTEGER
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS controls (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            os TEXT NOT NULL CHECK (os IN ('windows','linux')),
+            control_id TEXT NOT NULL,
+            description TEXT,
+            UNIQUE(os, control_id)
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS control_rule_map (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            control_id TEXT NOT NULL,
+            rule_id TEXT NOT NULL,
+            UNIQUE(control_id, rule_id)
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS jwt_revocations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            jti TEXT UNIQUE NOT NULL,
+            exp_ts INTEGER NOT NULL
+        )
     """)
     # Migrate older policies table to add columns if missing
     try:
@@ -269,6 +322,46 @@ def add_alert(level: str, message: str, device_id: Optional[str] = None):
     conn.commit()
     conn.close()
 
+def add_audit_event(event_type: str, actor: Optional[str], details: str, key: Optional[str] = None):
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO audit_events (ts, event_type, actor, details, key) VALUES (?,?,?,?,?)
+        """,
+        (int(time.time()), event_type, actor, details, key),
+    )
+    conn.commit()
+    conn.close()
+
+def list_audit_events(limit: int = 100) -> List[sqlite3.Row]:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT ts, event_type, actor, details, key FROM audit_events ORDER BY ts DESC LIMIT ?
+        """,
+        (limit,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+def list_policy_overrides(device_id: str) -> List[sqlite3.Row]:
+    now = int(time.time())
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT rule_id FROM policy_overrides
+        WHERE device_id = ? AND waived = 1 AND (expires_ts IS NULL OR expires_ts > ?)
+        """,
+        (device_id, now),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
 def add_policy_key(key_id: str, secret: bytes, active: bool = False):
     blob = encrypt_dict({"secret": base64.b64encode(secret).decode("utf-8")})
     conn = _conn()
@@ -318,3 +411,161 @@ def get_policy_key_secret(key_id: str) -> Optional[bytes]:
     data = decrypt_dict(row["secret"])
     secret_b64 = data["secret"]
     return base64.b64decode(secret_b64.encode("utf-8"))
+
+def add_control(os: str, control_id: str, description: str):
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("INSERT OR IGNORE INTO controls (os, control_id, description) VALUES (?,?,?)", (os, control_id, description))
+    conn.commit()
+    conn.close()
+
+def list_controls(os: str) -> List[sqlite3.Row]:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("SELECT control_id, description FROM controls WHERE os = ? ORDER BY control_id", (os,))
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+def map_control_rule(control_id: str, rule_id: str):
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("INSERT OR IGNORE INTO control_rule_map (control_id, rule_id) VALUES (?,?)", (control_id, rule_id))
+    conn.commit()
+    conn.close()
+
+def unmap_control_rule(control_id: str, rule_id: str) -> bool:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM control_rule_map WHERE control_id = ? AND rule_id = ?", (control_id, rule_id))
+    deleted = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return deleted
+
+def list_control_rules(control_id: str) -> List[sqlite3.Row]:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("SELECT rule_id FROM control_rule_map WHERE control_id = ? ORDER BY rule_id", (control_id,))
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+def get_device(device_id: str) -> Optional[sqlite3.Row]:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("SELECT device_id, hostname, os FROM devices WHERE device_id = ?", (device_id,))
+    row = cur.fetchone()
+    conn.close()
+    return row
+
+def latest_compliant(device_id: str, rule_id: str) -> Optional[bool]:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT compliant FROM findings WHERE device_id = ? AND rule_id = ? ORDER BY ts DESC LIMIT 1
+        """,
+        (device_id, rule_id),
+    )
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return None
+    return bool(row["compliant"])
+
+def coverage_for_device(device_id: str) -> dict:
+    dev = get_device(device_id)
+    if not dev:
+        return {"device_id": device_id, "controls": [], "score": 0}
+    os = dev["os"]
+    ctrls = list_controls(os)
+    results = []
+    passed = 0
+    for c in ctrls:
+        rules = [r["rule_id"] for r in list_control_rules(c["control_id"])]
+        if not rules:
+            results.append({"control_id": c["control_id"], "passed": False, "rules": []})
+            continue
+        ok_all = True
+        for rid in rules:
+            comp = latest_compliant(device_id, rid)
+            if comp is not True:
+                ok_all = False
+                break
+        results.append({"control_id": c["control_id"], "passed": ok_all, "rules": rules})
+        if ok_all:
+            passed += 1
+    score = (passed/len(ctrls)*100) if ctrls else 0
+    return {"device_id": device_id, "controls": results, "score": score}
+
+def fleet_coverage() -> dict:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("SELECT device_id FROM devices")
+    devices = [r[0] for r in cur.fetchall()]
+    conn.close()
+    summaries = [coverage_for_device(d) for d in devices]
+    fleet_score = sum(s["score"] for s in summaries) / len(summaries) if summaries else 0
+    return {"fleet_score": fleet_score, "devices": summaries}
+
+def revoke_jwt(jti: str, exp_ts: int):
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("INSERT OR IGNORE INTO jwt_revocations (jti, exp_ts) VALUES (?,?)", (jti, exp_ts))
+    conn.commit()
+    conn.close()
+
+def is_jwt_revoked(jti: str) -> bool:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("SELECT 1 FROM jwt_revocations WHERE jti = ?", (jti,))
+    row = cur.fetchone()
+    conn.close()
+    return bool(row)
+
+def list_revocations(limit: int = 100) -> List[sqlite3.Row]:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("SELECT jti, exp_ts FROM jwt_revocations ORDER BY exp_ts DESC LIMIT ?", (limit,))
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+def add_exec_allow(host: str, channel: str, min_role: str):
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO exec_allowlist (host, channel, min_role) VALUES (?,?,?)
+        ON CONFLICT(host, channel) DO UPDATE SET min_role=excluded.min_role
+        """,
+        (host, channel, min_role),
+    )
+    conn.commit()
+    conn.close()
+
+def delete_exec_allow(host: str, channel: str) -> bool:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM exec_allowlist WHERE host = ? AND channel = ?", (host, channel))
+    deleted = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return deleted
+
+def list_exec_allowlist() -> List[sqlite3.Row]:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("SELECT host, channel, min_role FROM exec_allowlist ORDER BY host, channel")
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+def get_exec_allow(host: str, channel: str) -> Optional[sqlite3.Row]:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("SELECT host, channel, min_role FROM exec_allowlist WHERE host = ? AND channel = ?", (host, channel))
+    row = cur.fetchone()
+    conn.close()
+    return row
