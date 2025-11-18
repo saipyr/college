@@ -73,6 +73,118 @@ rules:
     fix_cmd: ["bash", "-lc", "for s in telnet tftp rsh ftp; do sudo systemctl disable --now $s 2>/dev/null || true; done"]
     severity: "high"
     os: "linux"
+  - id: "LIN-SVC-002"
+    control_id: "LIN.SVC.AUTOFS"
+    category: "Service Hardening"
+    description: "Disable autofs"
+    check_cmd: ["bash", "-lc", "systemctl is-enabled autofs 2>/dev/null | grep -q 'disabled'"]
+    fix_cmd: ["bash", "-lc", "sudo systemctl disable --now autofs 2>/dev/null || true"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-SVC-003"
+    control_id: "LIN.SVC.AVAHI"
+    category: "Service Hardening"
+    description: "Disable avahi-daemon"
+    check_cmd: ["bash", "-lc", "systemctl is-enabled avahi-daemon 2>/dev/null | grep -q 'disabled'"]
+    fix_cmd: ["bash", "-lc", "sudo systemctl disable --now avahi-daemon 2>/dev/null || true"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-SVC-004"
+    control_id: "LIN.SVC.DHCPD"
+    category: "Service Hardening"
+    description: "Disable dhcpd"
+    check_cmd: ["bash", "-lc", "systemctl is-enabled dhcpd 2>/dev/null | grep -q 'disabled'"]
+    fix_cmd: ["bash", "-lc", "sudo systemctl disable --now dhcpd 2>/dev/null || true"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-SVC-005"
+    control_id: "LIN.SVC.DNS"
+    category: "Service Hardening"
+    description: "Disable named (DNS server)"
+    check_cmd: ["bash", "-lc", "systemctl is-enabled named 2>/dev/null | grep -q 'disabled'"]
+    fix_cmd: ["bash", "-lc", "sudo systemctl disable --now named 2>/dev/null || true"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-SVC-006"
+    control_id: "LIN.SVC.LDAPD"
+    category: "Service Hardening"
+    description: "Disable slapd (LDAP)"
+    check_cmd: ["bash", "-lc", "systemctl is-enabled slapd 2>/dev/null | grep -q 'disabled'"]
+    fix_cmd: ["bash", "-lc", "sudo systemctl disable --now slapd 2>/dev/null || true"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-SVC-007"
+    control_id: "LIN.SVC.NFS"
+    category: "Service Hardening"
+    description: "Disable nfs-server"
+    check_cmd: ["bash", "-lc", "systemctl is-enabled nfs-server 2>/dev/null | grep -q 'disabled'"]
+    fix_cmd: ["bash", "-lc", "sudo systemctl disable --now nfs-server 2>/dev/null || true"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-SVC-008"
+    control_id: "LIN.SVC.RPCBIND"
+    category: "Service Hardening"
+    description: "Disable rpcbind"
+    check_cmd: ["bash", "-lc", "systemctl is-enabled rpcbind 2>/dev/null | grep -q 'disabled'"]
+    fix_cmd: ["bash", "-lc", "sudo systemctl disable --now rpcbind 2>/dev/null || true"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-SVC-009"
+    control_id: "LIN.SVC.SAMBA"
+    category: "Service Hardening"
+    description: "Disable smbd (Samba)"
+    check_cmd: ["bash", "-lc", "systemctl is-enabled smbd 2>/dev/null | grep -q 'disabled'"]
+    fix_cmd: ["bash", "-lc", "sudo systemctl disable --now smbd 2>/dev/null || true"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-SVC-010"
+    control_id: "LIN.SVC.SNMPD"
+    category: "Service Hardening"
+    description: "Disable snmpd"
+    check_cmd: ["bash", "-lc", "systemctl is-enabled snmpd 2>/dev/null | grep -q 'disabled'"]
+    fix_cmd: ["bash", "-lc", "sudo systemctl disable --now snmpd 2>/dev/null || true"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-SVC-011"
+    control_id: "LIN.SVC.TFTP"
+    category: "Service Hardening"
+    description: "Disable tftp"
+    check_cmd: ["bash", "-lc", "systemctl is-enabled tftp 2>/dev/null | grep -q 'disabled'"]
+    fix_cmd: ["bash", "-lc", "sudo systemctl disable --now tftp 2>/dev/null || true"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-SVC-012"
+    control_id: "LIN.SVC.APACHE"
+    category: "Service Hardening"
+    description: "Disable Apache HTTP Server"
+    check_cmd: ["bash", "-lc", "systemctl is-enabled apache2 2>/dev/null | grep -q 'disabled' || systemctl is-enabled httpd 2>/dev/null | grep -q 'disabled'"]
+    fix_cmd: ["bash", "-lc", "sudo systemctl disable --now apache2 2>/dev/null || true; sudo systemctl disable --now httpd 2>/dev/null || true"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-SVC-013"
+    control_id: "LIN.SVC.NGINX"
+    category: "Service Hardening"
+    description: "Disable nginx"
+    check_cmd: ["bash", "-lc", "systemctl is-enabled nginx 2>/dev/null | grep -q 'disabled'"]
+    fix_cmd: ["bash", "-lc", "sudo systemctl disable --now nginx 2>/dev/null || true"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-SVC-014"
+    control_id: "LIN.SVC.XINETD"
+    category: "Service Hardening"
+    description: "Disable xinetd"
+    check_cmd: ["bash", "-lc", "systemctl is-enabled xinetd 2>/dev/null | grep -q 'disabled'"]
+    fix_cmd: ["bash", "-lc", "sudo systemctl disable --now xinetd 2>/dev/null || true"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-SVC-015"
+    control_id: "LIN.SVC.X11"
+    category: "Service Hardening"
+    description: "Disable display manager for servers"
+    check_cmd: ["bash", "-lc", "for dm in gdm3 gdm lightdm sddm; do if systemctl is-enabled $dm 2>/dev/null | grep -q 'enabled'; then exit 1; fi; done"]
+    fix_cmd: ["bash", "-lc", "for dm in gdm3 gdm lightdm sddm; do sudo systemctl disable --now $dm 2>/dev/null || true; done"]
+    severity: "low"
+    os: "linux"
   - id: "LIN-TIME-001"
     control_id: "LIN.TIME.SYNC"
     category: "Time Sync"
@@ -200,6 +312,134 @@ rules:
     check_cmd: ["bash", "-lc", "grep -qE '^-a always,exit -F arch=b64 -S execve -C uid!=euid -F euid=0 -k privileged' /etc/audit/rules.d/* 2>/dev/null"]
     fix_cmd: ["bash", "-lc", "echo '-a always,exit -F arch=b64 -S execve -C uid!=euid -F euid=0 -k privileged' | sudo tee /etc/audit/rules.d/20-priv.rules && sudo augenrules --load || sudo service auditd restart"]
     severity: "high"
+    os: "linux"
+  - id: "LIN-AUDITD-005"
+    control_id: "LIN.AUD.PASSWD_SHADOW"
+    category: "Auditd"
+    description: "Audit passwd/shadow changes"
+    check_cmd: ["bash", "-lc", "grep -qE '^-w /etc/passwd -p wa -k passwd|^-w /etc/shadow -p wa -k shadow' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "printf '%s\n%s\n' '-w /etc/passwd -p wa -k passwd' '-w /etc/shadow -p wa -k shadow' | sudo tee /etc/audit/rules.d/30-ids.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-AUDITD-006"
+    control_id: "LIN.AUD.USER_GROUP"
+    category: "Auditd"
+    description: "Audit user/group config changes"
+    check_cmd: ["bash", "-lc", "grep -qE '^-w /etc/group -p wa -k group|^-w /etc/gshadow -p wa -k gshadow' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "printf '%s\n%s\n' '-w /etc/group -p wa -k group' '-w /etc/gshadow -p wa -k gshadow' | sudo tee /etc/audit/rules.d/31-ids.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-AUDITD-007"
+    control_id: "LIN.AUD.NETWORK_CONF"
+    category: "Auditd"
+    description: "Audit network config changes"
+    check_cmd: ["bash", "-lc", "grep -qE '^-w /etc/sysctl.conf -p wa -k network|^-w /etc/sysctl.d -p wa -k network' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "printf '%s\n%s\n' '-w /etc/sysctl.conf -p wa -k network' '-w /etc/sysctl.d -p wa -k network' | sudo tee /etc/audit/rules.d/32-network.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-AUDITD-008"
+    control_id: "LIN.AUD.LOG_TAMPER"
+    category: "Auditd"
+    description: "Audit log tampering"
+    check_cmd: ["bash", "-lc", "grep -qE '^-w /var/log -p wa -k logs' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "echo '-w /var/log -p wa -k logs' | sudo tee /etc/audit/rules.d/33-logs.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-AUDITD-009"
+    control_id: "LIN.AUD.KMOD"
+    category: "Auditd"
+    description: "Audit kernel module loading"
+    check_cmd: ["bash", "-lc", "grep -qE '^-w /sbin/insmod -p x -k modules|^-w /sbin/modprobe -p x -k modules|^-w /sbin/rmmod -p x -k modules' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "printf '%s\n%s\n%s\n' '-w /sbin/insmod -p x -k modules' '-w /sbin/modprobe -p x -k modules' '-w /sbin/rmmod -p x -k modules' | sudo tee /etc/audit/rules.d/34-mod.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-AUDITD-010"
+    control_id: "LIN.AUD.MOUNT"
+    category: "Auditd"
+    description: "Audit mount/unmount"
+    check_cmd: ["bash", "-lc", "grep -qE '^-a always,exit -F arch=b64 -S mount -k mounts|^-a always,exit -F arch=b64 -S umount2 -k mounts' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "printf '%s\n%s\n' '-a always,exit -F arch=b64 -S mount -k mounts' '-a always,exit -F arch=b64 -S umount2 -k mounts' | sudo tee /etc/audit/rules.d/35-mount.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-AUDITD-011"
+    control_id: "LIN.AUD.TIMECHANGE"
+    category: "Auditd"
+    description: "Audit time changes"
+    check_cmd: ["bash", "-lc", "grep -qE '^-a always,exit -F arch=b64 -S adjtimex -S settimeofday -k time-change|^-w /etc/timezone -p wa -k time-change' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "printf '%s\n%s\n' '-a always,exit -F arch=b64 -S adjtimex -S settimeofday -k time-change' '-w /etc/timezone -p wa -k time-change' | sudo tee /etc/audit/rules.d/36-time.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-AUDITD-012"
+    control_id: "LIN.AUD.SETUID"
+    category: "Auditd"
+    description: "Audit setuid/setgid binary exec"
+    check_cmd: ["bash", "-lc", "grep -qE '^-a always,exit -F arch=b64 -S execve -C exe -F euid=0 -k setuid' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "echo '-a always,exit -F arch=b64 -S execve -C exe -F euid=0 -k setuid' | sudo tee /etc/audit/rules.d/37-setuid.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-AUDITD-013"
+    control_id: "LIN.AUD.SU_SUDO"
+    category: "Auditd"
+    description: "Audit su/sudo usage"
+    check_cmd: ["bash", "-lc", "grep -qE '^-w /usr/bin/su -p x -k su|^-w /usr/bin/sudo -p x -k sudo' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "printf '%s\n%s\n' '-w /usr/bin/su -p x -k su' '-w /usr/bin/sudo -p x -k sudo' | sudo tee /etc/audit/rules.d/38-su.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-AUDITD-014"
+    control_id: "LIN.AUD.SSHD_CONFIG"
+    category: "Auditd"
+    description: "Audit sshd_config changes"
+    check_cmd: ["bash", "-lc", "grep -qE '^-w /etc/ssh/sshd_config -p wa -k ssh' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "echo '-w /etc/ssh/sshd_config -p wa -k ssh' | sudo tee /etc/audit/rules.d/39-ssh.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-AUDITD-015"
+    control_id: "LIN.AUD.USERMGMT_TOOLS"
+    category: "Auditd"
+    description: "Audit user mgmt tools"
+    check_cmd: ["bash", "-lc", "grep -qE '^-w /usr/sbin/useradd -p x -k usermgmt|^-w /usr/sbin/usermod -p x -k usermgmt|^-w /usr/sbin/userdel -p x -k usermgmt' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "printf '%s\n%s\n%s\n' '-w /usr/sbin/useradd -p x -k usermgmt' '-w /usr/sbin/usermod -p x -k usermgmt' '-w /usr/sbin/userdel -p x -k usermgmt' | sudo tee /etc/audit/rules.d/40-user.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-AUDITD-016"
+    control_id: "LIN.AUD.GROUPMGMT_TOOLS"
+    category: "Auditd"
+    description: "Audit group mgmt tools"
+    check_cmd: ["bash", "-lc", "grep -qE '^-w /usr/sbin/groupadd -p x -k groupmgmt|^-w /usr/sbin/groupmod -p x -k groupmgmt|^-w /usr/sbin/groupdel -p x -k groupmgmt' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "printf '%s\n%s\n%s\n' '-w /usr/sbin/groupadd -p x -k groupmgmt' '-w /usr/sbin/groupmod -p x -k groupmgmt' '-w /usr/sbin/groupdel -p x -k groupmgmt' | sudo tee /etc/audit/rules.d/41-group.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-AUDITD-017"
+    control_id: "LIN.AUD.FILE_ACCESS"
+    category: "Auditd"
+    description: "Audit sensitive file access"
+    check_cmd: ["bash", "-lc", "grep -qE '^-w /etc/hosts -p wa -k files|^-w /etc/hostname -p wa -k files' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "printf '%s\n%s\n' '-w /etc/hosts -p wa -k files' '-w /etc/hostname -p wa -k files' | sudo tee /etc/audit/rules.d/42-files.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-AUDITD-018"
+    control_id: "LIN.AUD.NETWORK_BINARIES"
+    category: "Auditd"
+    description: "Audit network binaries"
+    check_cmd: ["bash", "-lc", "grep -qE '^-w /usr/bin/nmcli -p x -k network|^-w /usr/bin/ifconfig -p x -k network' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "printf '%s\n%s\n' '-w /usr/bin/nmcli -p x -k network' '-w /usr/bin/ifconfig -p x -k network' | sudo tee /etc/audit/rules.d/43-netbin.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-AUDITD-019"
+    control_id: "LIN.AUD.PACKAGE_MGMT"
+    category: "Auditd"
+    description: "Audit package installs"
+    check_cmd: ["bash", "-lc", "grep -qE '^-w /usr/bin/apt -p x -k pkgmgmt|^-w /usr/bin/yum -p x -k pkgmgmt|^-w /usr/bin/dnf -p x -k pkgmgmt' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "printf '%s\n%s\n%s\n' '-w /usr/bin/apt -p x -k pkgmgmt' '-w /usr/bin/yum -p x -k pkgmgmt' '-w /usr/bin/dnf -p x -k pkgmgmt' | sudo tee /etc/audit/rules.d/44-pkg.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-AUDITD-020"
+    control_id: "LIN.AUD.FIREWALL_CONF"
+    category: "Auditd"
+    description: "Audit firewall config changes"
+    check_cmd: ["bash", "-lc", "grep -qE '^-w /etc/ufw -p wa -k firewall|^-w /etc/firewalld -p wa -k firewall' /etc/audit/rules.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "printf '%s\n%s\n' '-w /etc/ufw -p wa -k firewall' '-w /etc/firewalld -p wa -k firewall' | sudo tee /etc/audit/rules.d/45-fw.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "medium"
     os: "linux"
   - id: "LIN-RSYSLOG-001"
     control_id: "LIN.LOG.RSYSLOG_FORWARD"

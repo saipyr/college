@@ -226,11 +226,100 @@ rules:
     severity: "high"
     os: "windows"
   - id: "WIN-SVC-003"
+    control_id: "WIN.SVC.SNMP_TELNET"
     category: "System Services"
     description: "Disable SNMP and Telnet"
     check_cmd: ["powershell", "-NoProfile", "-Command", "('SNMP','TlntSvr' | ForEach-Object {(Get-Service $_).StartType}) -notcontains 'Automatic'"]
     fix_cmd: ["powershell", "-NoProfile", "-Command", "('SNMP','TlntSvr' | ForEach-Object {Set-Service -Name $_ -StartupType Disabled})"]
     severity: "medium"
+    os: "windows"
+  - id: "WIN-SVC-009"
+    control_id: "WIN.SVC.ICS"
+    category: "System Services"
+    description: "Internet Connection Sharing disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-Service SharedAccess).StartType -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-Service -Name SharedAccess -StartupType Disabled"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-SVC-010"
+    control_id: "WIN.SVC.FUNCTION_DISCOVERY_PH"
+    category: "System Services"
+    description: "Function Discovery Provider Host disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-Service fdPHost).StartType -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-Service -Name fdPHost -StartupType Disabled"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-SVC-011"
+    control_id: "WIN.SVC.FUNCTION_DISCOVERY_RP"
+    category: "System Services"
+    description: "Function Discovery Resource Publication disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-Service FDResPub).StartType -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-Service -Name FDResPub -StartupType Disabled"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-SVC-012"
+    control_id: "WIN.SVC.WMP_NETWORK"
+    category: "System Services"
+    description: "Windows Media Network Sharing Service disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-Service WMPNetworkSvc).StartType -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-Service -Name WMPNetworkSvc -StartupType Disabled"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-SEC-003"
+    control_id: "WIN.SEC.BLOCK_MS_ACCOUNTS"
+    category: "Security Options"
+    description: "Block Microsoft accounts"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System').NoConnectedUser -eq 3"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System' -Name 'NoConnectedUser' -Value 3"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-SEC-004"
+    control_id: "WIN.SEC.CTRL_ALT_DEL"
+    category: "Security Options"
+    description: "CTRL+ALT+DEL required"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System').DisableCAD -eq 0"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System' -Name 'DisableCAD' -Value 0"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-SEC-005"
+    control_id: "WIN.SEC.LIMIT_BLANK_PASSWORD"
+    category: "Security Options"
+    description: "Limit blank password use"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa').LimitBlankPasswordUse -eq 1"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' -Name 'LimitBlankPasswordUse' -Value 1"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-SEC-006"
+    control_id: "WIN.SEC.RENAME_ADMIN"
+    category: "Security Options"
+    description: "Administrator account renamed"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-LocalUser -SID 'S-1-5-21-*-500').Name -ne 'Administrator'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Rename Administrator account per policy'; exit 1"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-SEC-007"
+    control_id: "WIN.SEC.RENAME_GUEST"
+    category: "Security Options"
+    description: "Guest account renamed"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-LocalUser -Name 'Guest').Name -ne 'Guest'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Rename Guest account per policy'; exit 1"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-SEC-008"
+    control_id: "WIN.SEC.INACTIVITY"
+    category: "Security Options"
+    description: "Machine inactivity limit configured"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System').InactivityTimeoutSecs -ge 900"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System' -Name 'InactivityTimeoutSecs' -Value 900"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-DEF-001"
+    control_id: "WIN.DEF.APPGUARD_ENABLED"
+    category: "Application Guard"
+    description: "Windows Defender Application Guard enabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-WindowsOptionalFeature -Online -FeatureName Windows-Defender-ApplicationGuard).State -eq 'Enabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Enable-WindowsOptionalFeature -Online -FeatureName Windows-Defender-ApplicationGuard -All"]
+    severity: "low"
     os: "windows"
   - id: "WIN-NET-001"
     control_id: "WIN.NET.SMBV1"
@@ -279,4 +368,76 @@ rules:
     check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; (Select-String -Path $cfg -Pattern 'SeNetworkLogonRight').Line -match 'S-1-5-32-544' -and ((Select-String -Path $cfg -Pattern 'SeNetworkLogonRight').Line -match 'S-1-5-32-555')"]
     fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Configure via Local Security Policy (SeNetworkLogonRight)'; exit 1"]
     severity: "medium"
+    os: "windows"
+  - id: "WIN-RIGHTS-003"
+    control_id: "WIN.RIGHTS.CREDS_MANAGER"
+    category: "Local Policies"
+    description: "Restrict Access Credential Manager"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; -not (Select-String -Path $cfg -Pattern 'SeCredsMgrAccess')"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Set SeCredsMgrAccess to empty via Local Security Policy'; exit 1"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-RIGHTS-004"
+    control_id: "WIN.RIGHTS.CHANGE_TIME"
+    category: "Local Policies"
+    description: "Change system time restricted"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; (Select-String -Path $cfg -Pattern 'SeTimeZonePrivilege').Line -match 'S-1-5-32-544'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Configure SeTimeZonePrivilege to Administrators only'; exit 1"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-RIGHTS-005"
+    control_id: "WIN.RIGHTS.DENY_LOCAL"
+    category: "Local Policies"
+    description: "Deny log on locally for non-admin"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; (Select-String -Path $cfg -Pattern 'SeDenyInteractiveLogonRight').Line -match 'S-1-5-32-546'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Set SeDenyInteractiveLogonRight for Guests'; exit 1"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-RIGHTS-006"
+    control_id: "WIN.RIGHTS.DENY_NETWORK"
+    category: "Local Policies"
+    description: "Deny log on over network for Guests"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; (Select-String -Path $cfg -Pattern 'SeDenyNetworkLogonRight').Line -match 'S-1-5-32-546'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Set SeDenyNetworkLogonRight for Guests'; exit 1"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-RIGHTS-007"
+    control_id: "WIN.RIGHTS.RDP_LOGON"
+    category: "Local Policies"
+    description: "Allow log on through Remote Desktop Services: Administrators, RDP Users"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; (Select-String -Path $cfg -Pattern 'SeRemoteInteractiveLogonRight').Line -match 'S-1-5-32-544' -and ((Select-String -Path $cfg -Pattern 'SeRemoteInteractiveLogonRight').Line -match 'S-1-5-32-555')"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Configure SeRemoteInteractiveLogonRight to Administrators and Remote Desktop Users'; exit 1"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-SVC-013"
+    control_id: "WIN.SVC.SNMP_TRAP"
+    category: "System Services"
+    description: "SNMP Trap service disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-Service SNMPTRAP).StartType -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-Service -Name SNMPTRAP -StartupType Disabled"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-SVC-014"
+    control_id: "WIN.SVC.REMOTE_ACCESS"
+    category: "System Services"
+    description: "Routing and Remote Access disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-Service RemoteAccess).StartType -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-Service -Name RemoteAccess -StartupType Disabled"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-SVC-015"
+    control_id: "WIN.SVC.RASMAN"
+    category: "System Services"
+    description: "Remote Access Connection Manager disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-Service RasMan).StartType -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-Service -Name RasMan -StartupType Disabled"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-SVC-016"
+    control_id: "WIN.SVC.REMOTE_ASSISTANCE"
+    category: "System Services"
+    description: "Remote Assistance service disabled if present"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$s=Get-Service -Name RemoteAssistance -ErrorAction SilentlyContinue; $s -and $s.StartType -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "$s=Get-Service -Name RemoteAssistance -ErrorAction SilentlyContinue; if($s){ Set-Service -Name RemoteAssistance -StartupType Disabled }"]
+    severity: "low"
     os: "windows"
