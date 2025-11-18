@@ -2,6 +2,7 @@ version: "2024.11-full"
 os: "linux"
 rules:
   - id: "LIN-FS-001"
+    control_id: "LIN.FS.BLACKLIST"
     category: "Filesystem"
     description: "Blacklist unused filesystems"
     check_cmd: ["bash", "-lc", "! lsmod | grep -E '(cramfs|udf|hfs|freevxfs|squashfs|hfsplus|jffs2|fuse|ntfs)'"]
@@ -9,6 +10,7 @@ rules:
     severity: "medium"
     os: "linux"
   - id: "LIN-FS-002"
+    control_id: "LIN.FS.PARTITIONS"
     category: "Filesystem"
     description: "Separate partitions present (/tmp,/var,/var/log,/var/log/audit)"
     check_cmd: ["bash", "-lc", "grep -E '^(tmpfs|/dev/)' /etc/fstab | grep -E '/tmp|/var |/var/log |/var/log/audit'"]
@@ -16,6 +18,7 @@ rules:
     severity: "high"
     os: "linux"
   - id: "LIN-FS-003"
+    control_id: "LIN.FS.TMPFLAGS"
     category: "Filesystem"
     description: "/tmp mounted with nodev,nosuid,noexec"
     check_cmd: ["bash", "-lc", "findmnt -no OPTIONS /tmp | grep -qi 'nodev' && findmnt -no OPTIONS /tmp | grep -qi 'nosuid' && findmnt -no OPTIONS /tmp | grep -qi 'noexec'"]
@@ -23,6 +26,7 @@ rules:
     severity: "high"
     os: "linux"
   - id: "LIN-BOOT-001"
+    control_id: "LIN.BOOT.GRUBPWD"
     category: "Boot Hardening"
     description: "GRUB password configured"
     check_cmd: ["bash", "-lc", "grep -E '^GRUB_PASSWORD' /etc/grub.d/* 2>/dev/null || grep -E '^set superusers' /etc/grub.d/* 2>/dev/null"]
@@ -30,6 +34,7 @@ rules:
     severity: "high"
     os: "linux"
   - id: "LIN-SYSCTL-001"
+    control_id: "LIN.KERN.ASLR"
     category: "Kernel Hardening"
     description: "ASLR enabled"
     check_cmd: ["bash", "-lc", "sysctl kernel.randomize_va_space | grep -q '= 2'"]
@@ -37,6 +42,7 @@ rules:
     severity: "high"
     os: "linux"
   - id: "LIN-SYSCTL-002"
+    control_id: "LIN.KERN.PTRACE"
     category: "Kernel Hardening"
     description: "ptrace restricted"
     check_cmd: ["bash", "-lc", "sysctl kernel.yama.ptrace_scope | grep -q '= 1'"]
@@ -44,6 +50,7 @@ rules:
     severity: "medium"
     os: "linux"
   - id: "LIN-DUMP-001"
+    control_id: "LIN.KERN.COREDUMP"
     category: "Kernel Hardening"
     description: "Core dumps disabled"
     check_cmd: ["bash", "-lc", "sysctl fs.suid_dumpable | grep -q '= 0'"]
@@ -51,6 +58,7 @@ rules:
     severity: "medium"
     os: "linux"
   - id: "LIN-LOGIN-001"
+    control_id: "LIN.LOGIN.BANNER"
     category: "Login & Banner"
     description: "Banner configured (/etc/issue)"
     check_cmd: ["bash", "-lc", "test -s /etc/issue"]
@@ -58,6 +66,7 @@ rules:
     severity: "low"
     os: "linux"
   - id: "LIN-SVC-001"
+    control_id: "LIN.SVC.DISABLEINSECURE"
     category: "Service Hardening"
     description: "Disable insecure services (telnet,tftp,rsh,ftp)"
     check_cmd: ["bash", "-lc", "for s in telnet tftp rsh ftp; do systemctl is-enabled $s 2>/dev/null | grep -q 'disabled' || exit 1; done"]
@@ -65,6 +74,7 @@ rules:
     severity: "high"
     os: "linux"
   - id: "LIN-TIME-001"
+    control_id: "LIN.TIME.SYNC"
     category: "Time Sync"
     description: "chrony or timesyncd active"
     check_cmd: ["bash", "-lc", "systemctl is-active chronyd || systemctl is-active systemd-timesyncd"]
@@ -72,6 +82,7 @@ rules:
     severity: "medium"
     os: "linux"
   - id: "LIN-CRON-001"
+    control_id: "LIN.CRON.ACTIVE"
     category: "Cron Hardening"
     description: "Cron service active"
     check_cmd: ["bash", "-lc", "systemctl is-active cron || systemctl is-active crond"]
@@ -79,6 +90,7 @@ rules:
     severity: "low"
     os: "linux"
   - id: "LIN-NET-001"
+    control_id: "LIN.NET.IPV6"
     category: "Network Hardening"
     description: "IPv6 disabled"
     check_cmd: ["bash", "-lc", "sysctl net.ipv6.conf.all.disable_ipv6 | grep -q '= 1'"]
@@ -86,6 +98,7 @@ rules:
     severity: "medium"
     os: "linux"
   - id: "LIN-FW-001"
+    control_id: "LIN.FW.DEFAULTDENY"
     category: "Firewall"
     description: "UFW enabled default deny"
     check_cmd: ["bash", "-lc", "ufw status | grep -iq 'Status: active' && ufw status | grep -iq 'Default: deny'"]
@@ -93,6 +106,7 @@ rules:
     severity: "high"
     os: "linux"
   - id: "LIN-FW-LOG-001"
+    control_id: "LIN.FW.LOG"
     category: "Firewall"
     description: "UFW logging enabled"
     check_cmd: ["bash", "-lc", "ufw status | grep -iq 'Logging: on'"]
@@ -100,6 +114,7 @@ rules:
     severity: "medium"
     os: "linux"
   - id: "LIN-FW-LOOP-001"
+    control_id: "LIN.FW.LOOPBACK"
     category: "Firewall"
     description: "Loopback allowed"
     check_cmd: ["bash", "-lc", "sudo ufw status numbered | grep -iq 'ALLOW IN 127.0.0.1' || sudo ufw status | grep -iq 'Anywhere on lo' "]
@@ -107,6 +122,7 @@ rules:
     severity: "low"
     os: "linux"
   - id: "LIN-IPTABLES-PERSIST-001"
+    control_id: "LIN.FW.IPTABLES_PERSISTENT"
     category: "Firewall"
     description: "iptables-persistent removed"
     check_cmd: ["bash", "-lc", "dpkg -l | grep -q iptables-persistent && exit 1 || true"]
@@ -114,6 +130,7 @@ rules:
     severity: "medium"
     os: "linux"
   - id: "LIN-SSH-001"
+    control_id: "LIN.SSH.ROOTLOGIN"
     category: "SSH Hardening"
     description: "PermitRootLogin no"
     check_cmd: ["bash", "-lc", "grep -Ei '^PermitRootLogin\\s+no' /etc/ssh/sshd_config"]
@@ -121,6 +138,7 @@ rules:
     severity: "high"
     os: "linux"
   - id: "LIN-SSH-002"
+    control_id: "LIN.SSH.PASSAUTH"
     category: "SSH Hardening"
     description: "PasswordAuthentication no"
     check_cmd: ["bash", "-lc", "grep -Ei '^PasswordAuthentication\\s+no' /etc/ssh/sshd_config"]
@@ -128,6 +146,7 @@ rules:
     severity: "high"
     os: "linux"
   - id: "LIN-SSH-003"
+    control_id: "LIN.SSH.BANNER"
     category: "SSH Hardening"
     description: "Banner configured"
     check_cmd: ["bash", "-lc", "grep -Ei '^Banner\\s+' /etc/ssh/sshd_config"]
@@ -135,6 +154,7 @@ rules:
     severity: "low"
     os: "linux"
   - id: "LIN-SUDO-001"
+    control_id: "LIN.SUDO.LOG"
     category: "Sudo"
     description: "Sudo logs enabled"
     check_cmd: ["bash", "-lc", "grep -E '^Defaults\\s+logfile=' /etc/sudoers /etc/sudoers.d/* 2>/dev/null"]
@@ -142,6 +162,7 @@ rules:
     severity: "medium"
     os: "linux"
   - id: "LIN-PAM-001"
+    control_id: "LIN.PAM.MINLEN"
     category: "PAM"
     description: "Password length >=12"
     check_cmd: ["bash", "-lc", "grep -E '^minlen\\s*=?\\s*12|^minlen\\s*=?\\s*[1-9][2-9]' /etc/security/pwquality.conf"]
@@ -149,6 +170,7 @@ rules:
     severity: "high"
     os: "linux"
   - id: "LIN-AUDITD-001"
+    control_id: "LIN.AUD.AUDITD_ACTIVE"
     category: "Auditd"
     description: "auditd active"
     check_cmd: ["bash", "-lc", "systemctl is-active auditd"]
@@ -156,6 +178,7 @@ rules:
     severity: "high"
     os: "linux"
   - id: "LIN-AUDITD-002"
+    control_id: "LIN.AUD.IMMUTABLE"
     category: "Auditd"
     description: "Immutable rules enforced"
     check_cmd: ["bash", "-lc", "grep -qE '^-e\\s+2' /etc/audit/rules.d/* 2>/dev/null"]
@@ -163,6 +186,7 @@ rules:
     severity: "high"
     os: "linux"
   - id: "LIN-AUDITD-003"
+    control_id: "LIN.AUD.SUDOERS"
     category: "Auditd"
     description: "Audit sudoers changes"
     check_cmd: ["bash", "-lc", "grep -qE '^-w /etc/sudoers -p wa -k sudoers' /etc/audit/rules.d/* 2>/dev/null"]
@@ -170,6 +194,7 @@ rules:
     severity: "high"
     os: "linux"
   - id: "LIN-AUDITD-004"
+    control_id: "LIN.AUD.PRIVILEGED"
     category: "Auditd"
     description: "Audit privileged commands"
     check_cmd: ["bash", "-lc", "grep -qE '^-a always,exit -F arch=b64 -S execve -C uid!=euid -F euid=0 -k privileged' /etc/audit/rules.d/* 2>/dev/null"]
@@ -177,6 +202,7 @@ rules:
     severity: "high"
     os: "linux"
   - id: "LIN-RSYSLOG-001"
+    control_id: "LIN.LOG.RSYSLOG_FORWARD"
     category: "rsyslog"
     description: "rsyslog active and remote forwarding"
     check_cmd: ["bash", "-lc", "systemctl is-active rsyslog && grep -qE '@@' /etc/rsyslog.d/*.conf 2>/dev/null"]
@@ -184,6 +210,7 @@ rules:
     severity: "medium"
     os: "linux"
   - id: "LIN-LOGROTATE-001"
+    control_id: "LIN.LOG.LOGROTATE"
     category: "Logging"
     description: "logrotate configured"
     check_cmd: ["bash", "-lc", "test -s /etc/logrotate.conf"]
@@ -191,6 +218,7 @@ rules:
     severity: "low"
     os: "linux"
   - id: "LIN-AIDE-001"
+    control_id: "LIN.INTEGRITY.AIDE"
     category: "Integrity"
     description: "AIDE installed"
     check_cmd: ["bash", "-lc", "command -v aide"]
@@ -198,6 +226,7 @@ rules:
     severity: "medium"
     os: "linux"
   - id: "LIN-NETMOD-001"
+    control_id: "LIN.NET.DISABLE_MODULES"
     category: "Network Hardening"
     description: "Disable dccp, tipc, rds, sctp"
     check_cmd: ["bash", "-lc", "! lsmod | grep -E '(dccp|tipc|rds|sctp)'"]
@@ -205,6 +234,7 @@ rules:
     severity: "medium"
     os: "linux"
   - id: "LIN-SYSCTL-003"
+    control_id: "LIN.KERN.NET_SYSCTLS"
     category: "Kernel Hardening"
     description: "Network sysctls enforced"
     check_cmd: ["bash", "-lc", "sysctl net.ipv4.tcp_syncookies | grep -q '= 1' && sysctl net.ipv4.conf.all.rp_filter | grep -q '= 1' && sysctl net.ipv4.conf.all.accept_redirects | grep -q '= 0'"]
@@ -212,6 +242,7 @@ rules:
     severity: "high"
     os: "linux"
   - id: "LIN-LOG-001"
+    control_id: "LIN.LOG.JOURNALD_ROT"
     category: "journald"
     description: "journald rotation configured"
     check_cmd: ["bash", "-lc", "grep -E '^SystemMaxUse=' /etc/systemd/journald.conf"]
@@ -275,6 +306,7 @@ rules:
     severity: "high"
     os: "linux"
   - id: "LIN-FILE-001"
+    control_id: "LIN.MAINT.WORLDWRITABLE"
     category: "System Maintenance"
     description: "No world-writable files"
     check_cmd: ["bash", "-lc", "test -z \"$(find / -xdev -type f -perm -0002 2>/dev/null | head -n 1)\""]

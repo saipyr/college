@@ -28,6 +28,8 @@ from ..winrm_client import winrm_run_command
 from ..discovery import discover_cidr
 from ..alerts import emit_alert
 from ..reports import generate_pdf
+from ..rule_engine import load_policy
+from ..prd_import import load_prd_xlsx
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
@@ -56,6 +58,11 @@ def startup():
         pass
     if os.getenv("SEED_CONTROLS", "0") == "1":
         _seed_controls()
+    if os.getenv("IMPORT_CONTROLS_FROM_POLICY", "0") == "1":
+        try:
+            _import_controls_from_policies()
+        except Exception:
+            pass
 
 def require_auth(creds: HTTPAuthorizationCredentials = Depends(auth_scheme)):
     try:
@@ -424,6 +431,32 @@ def _seed_controls():
         add_control("linux", cid, cid)
         for rid in rules:
             map_control_rule(cid, rid)
+
+def _import_controls_from_xlsx(path: Path):
+    if not path.exists():
+        return
+    items = load_prd_xlsx(str(path))
+    for it in items:
+        osv = it.get("os")
+        if osv not in ("windows", "linux"):
+            continue
+        add_control(osv, it["control_id"], it.get("description", ""))
+        for rid in it.get("rule_ids", []):
+            map_control_rule(it["control_id"], rid)
+
+def _import_controls_from_policies():
+    for os_name in ("windows", "linux"):
+        row = get_latest_policy(os_name)
+        if not row:
+            continue
+        policy = load_policy(row["content"])
+        rules = policy.get("rules", [])
+        for r in rules:
+            cid = r.get("control_id")
+            rid = r.get("id")
+            if cid and rid:
+                add_control(os_name, cid, r.get("description", ""))
+                map_control_rule(cid, rid)
 @app.get("/admin/exec/allow")
 def admin_exec_allow_list(claims=Depends(require_role(["admin"]))):
     rows = list_exec_allowlist()
@@ -586,3 +619,29 @@ def jwt_revocations(claims=Depends(require_role(["admin"]))):
     from ..storage import list_revocations
     rows = list_revocations(limit=200)
     return {"items": [dict(r) for r in rows]}
+
+class PRDImportBody(BaseModel):
+    file_path: str
+
+@app.post("/admin/controls/import-xlsx")
+def admin_controls_import(body: PRDImportBody, claims=Depends(require_role(["admin"]))):
+    fp = Path(body.file_path)
+    if not fp.exists():
+        raise HTTPException(status_code=400, detail="file not found")
+    max_size = int(os.getenv("MAX_IMPORT_SIZE", "5000000"))
+    if fp.stat().st_size > max_size:
+        raise HTTPException(status_code=413, detail="file too large")
+    items = load_prd_xlsx(str(fp))
+    added = 0
+    mapped = 0
+    for it in items:
+        osv = it.get("os")
+        if osv not in ("windows", "linux"):
+            continue
+        add_control(osv, it["control_id"], it.get("description", ""))
+        added += 1
+        for rid in it.get("rule_ids", []):
+            map_control_rule(it["control_id"], rid)
+            mapped += 1
+    add_audit_event("controls_import", claims.get("sub"), f"added={added} mapped={mapped}")
+    return {"added": added, "mapped": mapped}

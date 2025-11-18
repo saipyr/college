@@ -258,6 +258,30 @@ def user():
     """User management (RBAC)."""
     pass
 
+@cli.group("control")
+def control():
+    """Manage Annexure controls and mappings."""
+    pass
+
+@control.command("import-xlsx")
+@click.option("--file", "file_path", type=click.Path(exists=True), required=True)
+def control_import_xlsx(file_path):
+    from .prd_import import load_prd_xlsx
+    items = load_prd_xlsx(file_path)
+    from .storage import add_control, map_control_rule
+    added = 0
+    mapped = 0
+    for it in items:
+        osv = it.get("os")
+        if osv not in ("windows", "linux"):
+            continue
+        add_control(osv, it["control_id"], it.get("description", ""))
+        added += 1
+        for rid in it.get("rule_ids", []):
+            map_control_rule(it["control_id"], rid)
+            mapped += 1
+    click.echo(f"Imported controls: added={added} mapped={mapped}")
+
 @user.command("add")
 @click.option("--username", required=True)
 @click.option("--password", required=True)

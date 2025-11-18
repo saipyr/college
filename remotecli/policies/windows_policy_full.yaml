@@ -2,6 +2,7 @@ version: "2024.11-full"
 os: "windows"
 rules:
   - id: "WIN-ACC-001"
+    control_id: "WIN.ACC.MINLEN"
     category: "Account Policies"
     description: "Minimum password length >=12"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(net accounts) -match 'Minimum password length' -replace '\\D','' -as [int] -ge 12"]
@@ -9,6 +10,7 @@ rules:
     severity: "high"
     os: "windows"
   - id: "WIN-ACC-002"
+    control_id: "WIN.ACC.HISTORY"
     category: "Account Policies"
     description: "Password history >=24"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(net accounts) -match 'Password history length' -replace '\\D','' -as [int] -ge 24"]
@@ -16,6 +18,7 @@ rules:
     severity: "high"
     os: "windows"
   - id: "WIN-ACC-003"
+    control_id: "WIN.ACC.MAXAGE"
     category: "Account Policies"
     description: "Maximum password age <=90 days"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(net accounts) -match 'Maximum password age' | ForEach-Object {($_ -split ':')[1].Trim()} | ForEach-Object {[timespan]::Parse($_).Days -le 90}"]
@@ -23,6 +26,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-ACC-004"
+    control_id: "WIN.ACC.COMPLEXITY"
     category: "Account Policies"
     description: "Password complexity enabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; Select-String -Path $cfg -Pattern 'PasswordComplexity\s*=\s*1'"]
@@ -30,6 +34,7 @@ rules:
     severity: "high"
     os: "windows"
   - id: "WIN-ACC-005"
+    control_id: "WIN.ACC.REVENC"
     category: "Account Policies"
     description: "Reversible encryption disabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; Select-String -Path $cfg -Pattern 'ClearTextPassword\s*=\s*0'"]
@@ -37,6 +42,7 @@ rules:
     severity: "high"
     os: "windows"
   - id: "WIN-ACC-006"
+    control_id: "WIN.ACC.MINAGE"
     category: "Account Policies"
     description: "Minimum password age >= 1 day"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(net accounts) -match 'Minimum password age' | ForEach-Object {($_ -split ':')[1].Trim()} | ForEach-Object {[timespan]::Parse($_).Days -ge 1}"]
@@ -44,6 +50,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-SEC-001"
+    control_id: "WIN.SEC.GUEST"
     category: "Security Options"
     description: "Guest account disabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-LocalUser -Name 'Guest').Enabled -eq $false"]
@@ -51,6 +58,7 @@ rules:
     severity: "high"
     os: "windows"
   - id: "WIN-SEC-002"
+    control_id: "WIN.SEC.LEGALNOTICE"
     category: "Security Options"
     description: "Legal notice configured"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System').LegalNoticeText -ne $null"]
@@ -58,6 +66,7 @@ rules:
     severity: "low"
     os: "windows"
   - id: "WIN-UAC-001"
+    control_id: "WIN.UAC.ADMINAPPROVAL"
     category: "UAC"
     description: "Admin approval mode enabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System').EnableLUA -eq 1"]
@@ -65,6 +74,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-SVC-001"
+    control_id: "WIN.SVC.REMOTEREGISTRY"
     category: "System Services"
     description: "RemoteRegistry service disabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-Service RemoteRegistry).StartType -eq 'Disabled'"]
@@ -72,6 +82,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-SVC-002"
+    control_id: "WIN.SVC.XBOX"
     category: "System Services"
     description: "Xbox services disabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "('XblAuthManager','XblGameSave','XboxGipSvc','XboxNetApiSvc' | ForEach-Object {(Get-Service $_).StartType}) -notcontains 'Automatic'"]
@@ -79,6 +90,7 @@ rules:
     severity: "low"
     os: "windows"
   - id: "WIN-SVC-004"
+    control_id: "WIN.SVC.BLUETOOTH"
     category: "System Services"
     description: "Bluetooth service disabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-Service bthserv).StartType -eq 'Disabled'"]
@@ -86,6 +98,7 @@ rules:
     severity: "low"
     os: "windows"
   - id: "WIN-SVC-005"
+    control_id: "WIN.SVC.RDP"
     category: "System Services"
     description: "Remote Desktop (TermService) disabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-Service TermService).StartType -eq 'Disabled'"]
@@ -93,6 +106,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-SVC-006"
+    control_id: "WIN.SVC.WINRM"
     category: "System Services"
     description: "WinRM service disabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-Service WinRM).StartType -eq 'Disabled'"]
@@ -100,6 +114,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-SVC-007"
+    control_id: "WIN.SVC.W3SVC"
     category: "System Services"
     description: "W3SVC disabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-Service W3SVC).StartType -eq 'Disabled'"]
@@ -107,6 +122,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-SVC-008"
+    control_id: "WIN.SVC.UPNP"
     category: "System Services"
     description: "UPnP services disabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "('SSDPSRV','upnphost' | ForEach-Object {(Get-Service $_).StartType}) -notcontains 'Automatic'"]
@@ -114,6 +130,7 @@ rules:
     severity: "low"
     os: "windows"
   - id: "WIN-FW-001"
+    control_id: "WIN.FW.ON"
     category: "Firewall"
     description: "Firewall enabled on all profiles"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-NetFirewallProfile | Where-Object {$_.Enabled -eq 'True'}).Count -ge 3"]
@@ -121,6 +138,7 @@ rules:
     severity: "high"
     os: "windows"
   - id: "WIN-FW-DEF-001"
+    control_id: "WIN.FW.DEFAULTS"
     category: "Firewall"
     description: "Default inbound=Block, outbound=Allow"
     check_cmd: ["powershell", "-NoProfile", "-Command", "($p=Get-NetFirewallProfile) -and (($p | Where-Object {$_.DefaultInboundAction -eq 'Block'}).Count -ge 3) -and (($p | Where-Object {$_.DefaultOutboundAction -eq 'Allow'}).Count -ge 3)"]
@@ -128,6 +146,7 @@ rules:
     severity: "high"
     os: "windows"
   - id: "WIN-FW-LOG-001"
+    control_id: "WIN.FW.LOG"
     category: "Firewall"
     description: "Firewall logging enabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-NetFirewallProfile | Where-Object {$_.LogFileName -ne $null -and $_.LogBlocked -eq 'True' -and $_.LogAllowed -eq 'True'}).Count -ge 3"]
@@ -135,6 +154,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-AUDIT-001"
+    control_id: "WIN.AUD.ACCOUNTLOGON"
     category: "Advanced Audit"
     description: "Audit policy: account logon events enabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'Account Logon') -match 'Success.*Enabled' -and (AuditPol /get /subcategory:'Account Logon') -match 'Failure.*Enabled'"]
@@ -142,6 +162,7 @@ rules:
     severity: "high"
     os: "windows"
   - id: "WIN-AUDIT-002"
+    control_id: "WIN.AUD.PROCESSCREATION"
     category: "Advanced Audit"
     description: "Audit process creation enabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'Process Creation') -match 'Success.*Enabled'"]
@@ -149,6 +170,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-AUDIT-003"
+    control_id: "WIN.AUD.PRIVILEGEUSE"
     category: "Advanced Audit"
     description: "Audit privilege use enabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'Privilege Use') -match 'Success.*Enabled' -and (AuditPol /get /subcategory:'Privilege Use') -match 'Failure.*Enabled'"]
@@ -156,6 +178,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-AUDIT-004"
+    control_id: "WIN.AUD.POLICYCHANGE"
     category: "Advanced Audit"
     description: "Audit policy change enabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'Policy Change') -match 'Success.*Enabled' -and (AuditPol /get /subcategory:'Policy Change') -match 'Failure.*Enabled'"]
@@ -163,6 +186,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-AUDIT-005"
+    control_id: "WIN.AUD.CREDVALID"
     category: "Advanced Audit"
     description: "Audit credential validation"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'Credential Validation') -match 'Success.*Enabled' -and (AuditPol /get /subcategory:'Credential Validation') -match 'Failure.*Enabled'"]
@@ -170,6 +194,7 @@ rules:
     severity: "high"
     os: "windows"
   - id: "WIN-AUDIT-006"
+    control_id: "WIN.AUD.SECGROUPMGMT"
     category: "Advanced Audit"
     description: "Audit security group management"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'Security Group Management') -match 'Success.*Enabled' -and (AuditPol /get /subcategory:'Security Group Management') -match 'Failure.*Enabled'"]
@@ -177,6 +202,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-AUDIT-007"
+    control_id: "WIN.AUD.REMOVABLE"
     category: "Advanced Audit"
     description: "Audit removable storage"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'Removable Storage') -match 'Success.*Enabled' -and (AuditPol /get /subcategory:'Removable Storage') -match 'Failure.*Enabled'"]
@@ -184,6 +210,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-AUDIT-008"
+    control_id: "WIN.AUD.FILESHARE"
     category: "Advanced Audit"
     description: "Audit file share"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'File Share') -match 'Success.*Enabled' -and (AuditPol /get /subcategory:'File Share') -match 'Failure.*Enabled'"]
@@ -191,6 +218,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-AUDIT-009"
+    control_id: "WIN.AUD.SYSINTEGRITY"
     category: "Advanced Audit"
     description: "Audit system integrity"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'System Integrity') -match 'Success.*Enabled' -and (AuditPol /get /subcategory:'System Integrity') -match 'Failure.*Enabled'"]
@@ -205,6 +233,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-NET-001"
+    control_id: "WIN.NET.SMBV1"
     category: "Network"
     description: "SMBv1 disabled"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-WindowsOptionalFeature -Online -FeatureName SMB1Protocol).State -eq 'Disabled'"]
@@ -212,6 +241,7 @@ rules:
     severity: "high"
     os: "windows"
   - id: "WIN-LOCK-001"
+    control_id: "WIN.LOCK.THRESH"
     category: "Account Lockout"
     description: "Lockout threshold <= 5"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(net accounts) -match 'Lockout threshold' -replace '\\D','' -as [int] -le 5"]
@@ -219,6 +249,7 @@ rules:
     severity: "high"
     os: "windows"
   - id: "WIN-LOCK-002"
+    control_id: "WIN.LOCK.DURATION"
     category: "Account Lockout"
     description: "Lockout duration >= 15 minutes"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(net accounts) -match 'Lockout duration' | ForEach-Object {($_ -split ':')[1].Trim()} | ForEach-Object {[timespan]::Parse($_).Minutes -ge 15}"]
@@ -226,6 +257,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-UAC-002"
+    control_id: "WIN.UAC.SECUREDESKTOP"
     category: "UAC"
     description: "Secure desktop prompts"
     check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System').PromptOnSecureDesktop -eq 1"]
@@ -233,6 +265,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-RIGHTS-001"
+    control_id: "WIN.RIGHTS.LOCALLOGON"
     category: "Local Policies"
     description: "Allow log on locally: Administrators, Users"
     check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; (Select-String -Path $cfg -Pattern 'SeInteractiveLogonRight').Line -match 'S-1-5-32-544' -and ((Select-String -Path $cfg -Pattern 'SeInteractiveLogonRight').Line -match 'S-1-5-32-545')"]
@@ -240,6 +273,7 @@ rules:
     severity: "medium"
     os: "windows"
   - id: "WIN-RIGHTS-002"
+    control_id: "WIN.RIGHTS.NETWORKLOGON"
     category: "Local Policies"
     description: "Access this computer from the network: Administrators, Remote Desktop Users"
     check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; (Select-String -Path $cfg -Pattern 'SeNetworkLogonRight').Line -match 'S-1-5-32-544' -and ((Select-String -Path $cfg -Pattern 'SeNetworkLogonRight').Line -match 'S-1-5-32-555')"]
