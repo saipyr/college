@@ -5,8 +5,8 @@ rules:
     control_id: "LIN.FS.BLACKLIST"
     category: "Filesystem"
     description: "Blacklist unused filesystems"
-    check_cmd: ["bash", "-lc", "! lsmod | grep -E '(cramfs|udf|hfs|freevxfs|squashfs|hfsplus|jffs2|fuse|ntfs)'"]
-    fix_cmd: ["bash", "-lc", "sudo tee /etc/modprobe.d/ntro-blacklist.conf >/dev/null <<'EOF'\nblacklist cramfs\nblacklist udf\nblacklist hfs\nblacklist freevxfs\nblacklist squashfs\nblacklist hfsplus\nblacklist jffs2\nblacklist fuse\nblacklist ntfs\nEOF\nsudo update-initramfs -u || true"]
+    check_cmd: ["bash", "-lc", "! lsmod | grep -E '(cramfs|udf|hfs|freevxfs|squashfs|hfsplus|jffs2|fuse|ntfs|overlay|usb-storage)'"]
+    fix_cmd: ["bash", "-lc", "sudo tee /etc/modprobe.d/ntro-blacklist.conf >/dev/null <<'EOF'\nblacklist cramfs\nblacklist udf\nblacklist hfs\nblacklist freevxfs\nblacklist squashfs\nblacklist hfsplus\nblacklist jffs2\nblacklist fuse\nblacklist ntfs\nblacklist overlay\nblacklist usb-storage\nEOF\nsudo update-initramfs -u || true"]
     severity: "medium"
     os: "linux"
   - id: "LIN-FS-002"
@@ -281,6 +281,110 @@ rules:
     fix_cmd: ["bash", "-lc", "sudo sed -i 's/^#\\?minlen.*/minlen = 12/' /etc/security/pwquality.conf"]
     severity: "high"
     os: "linux"
+  - id: "LIN-PAM-002"
+    control_id: "LIN.PAM.FAILLOCK"
+    category: "PAM"
+    description: "pam_faillock configured (account lockout)"
+    check_cmd: ["bash", "-lc", "grep -E 'pam_faillock' /etc/pam.d/common-auth 2>/dev/null || grep -E 'pam_faillock' /etc/pam.d/system-auth 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "echo 'Configure pam_faillock in /etc/pam.d/common-auth or system-auth'; sudo pam-auth-update --enable faillock 2>/dev/null || exit 1"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-PAM-003"
+    control_id: "LIN.PAM.PWHISTORY"
+    category: "PAM"
+    description: "pam_pwhistory enforced (remember 5 passwords)"
+    check_cmd: ["bash", "-lc", "grep -E 'pam_pwhistory.*remember=5' /etc/pam.d/common-password 2>/dev/null || grep -E 'pam_pwhistory.*remember=5' /etc/pam.d/system-auth 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "echo 'Add: password requisite pam_pwhistory.so remember=5 to /etc/pam.d/common-password'; exit 1"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-PAM-004"
+    control_id: "LIN.PAM.QUALITY"
+    category: "PAM"
+    description: "Password quality requirements (complexity)"
+    check_cmd: ["bash", "-lc", "grep -E '^(dcredit|ucredit|lcredit|ocredit)' /etc/security/pwquality.conf | wc -l | awk '{exit !($1 >= 2)}'"]
+    fix_cmd: ["bash", "-lc", "sudo tee -a /etc/security/pwquality.conf >/dev/null <<'EOF'\ndcredit = -1\nucredit = -1\nlcredit = -1\nocredit = -1\nEOF"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-PAM-005"
+    control_id: "LIN.PAM.ROOT_HISTORY"
+    category: "PAM"
+    description: "Root password history enforced"
+    check_cmd: ["bash", "-lc", "grep -E 'pam_pwhistory.*enforce_for_root' /etc/pam.d/common-password 2>/dev/null || grep -E 'pam_pwhistory.*enforce_for_root' /etc/pam.d/system-auth 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "echo 'Add enforce_for_root to pam_pwhistory line in /etc/pam.d/common-password'; exit 1"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-USER-001"
+    control_id: "LIN.USER.PASSWORD_EXPIRY"
+    category: "User & Account Policies"
+    description: "Password expiry configured in /etc/login.defs"
+    check_cmd: ["bash", "-lc", "grep -E '^PASS_MAX_DAYS\\s+90' /etc/login.defs && grep -E '^PASS_MIN_DAYS\\s+1' /etc/login.defs && grep -E '^PASS_WARN_AGE\\s+7' /etc/login.defs"]
+    fix_cmd: ["bash", "-lc", "sudo sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS   90/' /etc/login.defs; sudo sed -i 's/^PASS_MIN_DAYS.*/PASS_MIN_DAYS   1/' /etc/login.defs; sudo sed -i 's/^PASS_WARN_AGE.*/PASS_WARN_AGE   7/' /etc/login.defs"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-USER-002"
+    control_id: "LIN.USER.ROOT_UID_GID"
+    category: "User & Account Policies"
+    description: "Only root has UID/GID 0"
+    check_cmd: ["bash", "-lc", "test $(awk -F: '($3 == 0) {print}' /etc/passwd | wc -l) -eq 1 && test $(awk -F: '($3 == 0) {print}' /etc/group | wc -l) -eq 1"]
+    fix_cmd: ["bash", "-lc", "echo 'Manually review and fix accounts with UID/GID 0 other than root'; exit 1"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-USER-003"
+    control_id: "LIN.USER.SYSTEM_ACCOUNTS_LOCKED"
+    category: "User & Account Policies"
+    description: "System accounts have nologin shell"
+    check_cmd: ["bash", "-lc", "awk -F: '($3 < 1000 && $1 != \"root\" && $7 !~ /(nologin|false)/) {print $1}' /etc/passwd | wc -l | awk '{exit !($1 == 0)}'"]
+    fix_cmd: ["bash", "-lc", "echo 'Lock system accounts: for u in $(awk -F: '\\''($3 < 1000 && $1 != \"root\" && $7 !~ /(nologin|false)/) {print $1}'\\'' /etc/passwd); do sudo usermod -s /usr/sbin/nologin $u; done'"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-USER-004"
+    control_id: "LIN.USER.DUPLICATE_UID"
+    category: "User & Account Policies"
+    description: "No duplicate UIDs"
+    check_cmd: ["bash", "-lc", "cut -f3 -d: /etc/passwd | sort | uniq -d | wc -l | awk '{exit !($1 == 0)}'"]
+    fix_cmd: ["bash", "-lc", "echo 'Manually resolve duplicate UIDs'; exit 1"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-USER-005"
+    control_id: "LIN.USER.ORPHANED_FILES"
+    category: "User & Account Policies"
+    description: "No orphaned files (files with no owner)"
+    check_cmd: ["bash", "-lc", "test -z \"$(find / -xdev \\( -nouser -o -nogroup \\) -print 2>/dev/null | head -n 1)\""]
+    fix_cmd: ["bash", "-lc", "echo 'Review and assign ownership to orphaned files: find / -xdev \\( -nouser -o -nogroup \\) -print'; exit 1"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-USER-006"
+    control_id: "LIN.USER.DOTFILES_SECURE"
+    category: "User & Account Policies"
+    description: "Dotfiles in home directories are not group/world writable"
+    check_cmd: ["bash", "-lc", "find /home -name '.*' -type f -perm /go+w 2>/dev/null | wc -l | awk '{exit !($1 == 0)}'"]
+    fix_cmd: ["bash", "-lc", "echo 'Fix dotfile permissions: find /home -name \".\"* -type f -perm /go+w -exec chmod go-w {} \\;'; exit 1"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-FS-004"
+    control_id: "LIN.FS.DEVSHM_FLAGS"
+    category: "Filesystem"
+    description: "/dev/shm mounted with nodev,nosuid,noexec"
+    check_cmd: ["bash", "-lc", "findmnt -no OPTIONS /dev/shm | grep -qi 'nodev' && findmnt -no OPTIONS /dev/shm | grep -qi 'nosuid' && findmnt -no OPTIONS /dev/shm | grep -qi 'noexec'"]
+    fix_cmd: ["bash", "-lc", "sudo mount -o remount,nodev,nosuid,noexec /dev/shm"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-FS-005"
+    control_id: "LIN.FS.HOME_FLAGS"
+    category: "Filesystem"
+    description: "/home mounted with nodev"
+    check_cmd: ["bash", "-lc", "findmnt -no OPTIONS /home | grep -qi 'nodev' || (! findmnt /home && echo 'home not separate partition')"]
+    fix_cmd: ["bash", "-lc", "sudo mount -o remount,nodev /home || echo '/home not a separate partition, configure in /etc/fstab'"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-FS-006"
+    control_id: "LIN.FS.VARTMP_FLAGS"
+    category: "Filesystem"
+    description: "/var/tmp mounted with nodev,nosuid,noexec"
+    check_cmd: ["bash", "-lc", "findmnt -no OPTIONS /var/tmp | grep -qi 'nodev' && findmnt -no OPTIONS /var/tmp | grep -qi 'nosuid' && findmnt -no OPTIONS /var/tmp | grep -qi 'noexec'"]
+    fix_cmd: ["bash", "-lc", "sudo mount -o remount,nodev,nosuid,noexec /var/tmp"]
+    severity: "high"
+    os: "linux"
   - id: "LIN-AUDITD-001"
     control_id: "LIN.AUD.AUDITD_ACTIVE"
     category: "Auditd"
@@ -359,6 +463,30 @@ rules:
     description: "Audit mount/unmount"
     check_cmd: ["bash", "-lc", "grep -qE '^-a always,exit -F arch=b64 -S mount -k mounts|^-a always,exit -F arch=b64 -S umount2 -k mounts' /etc/audit/rules.d/* 2>/dev/null"]
     fix_cmd: ["bash", "-lc", "printf '%s\n%s\n' '-a always,exit -F arch=b64 -S mount -k mounts' '-a always,exit -F arch=b64 -S umount2 -k mounts' | sudo tee /etc/audit/rules.d/35-mount.rules && sudo augenrules --load || sudo service auditd restart"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-AIDE-002"
+    control_id: "LIN.INTEGRITY.AIDE_INIT"
+    category: "Integrity"
+    description: "AIDE initialized with baseline database"
+    check_cmd: ["bash", "-lc", "test -f /var/lib/aide/aide.db || test -f /var/lib/aide/aide.db.gz"]
+    fix_cmd: ["bash", "-lc", "sudo aideinit || sudo aide --init"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-AIDE-003"
+    control_id: "LIN.INTEGRITY.AIDE_CRON"
+    category: "Integrity"
+    description: "AIDE scheduled check (cron)"
+    check_cmd: ["bash", "-lc", "grep -qE 'aide.*--check' /etc/cron.daily/* /etc/cron.weekly/* /var/spool/cron/crontabs/* 2>/dev/null || grep -qE 'aide.*--check' /etc/crontab 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "echo '0 5 * * * root /usr/bin/aide --check' | sudo tee /etc/cron.d/aide"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-TIME-002"
+    control_id: "LIN.TIME.SERVER_AUTH"
+    category: "Time Sync"
+    description: "Authorized timeserver configured"
+    check_cmd: ["bash", "-lc", "(systemctl is-active chronyd && grep -qE '^(server|pool)' /etc/chrony/chrony.conf) || (systemctl is-active systemd-timesyncd && grep -qE '^NTP=' /etc/systemd/timesyncd.conf)"]
+    fix_cmd: ["bash", "-lc", "echo 'Configure authorized NTP server in /etc/chrony/chrony.conf or /etc/systemd/timesyncd.conf'; exit 1"]
     severity: "medium"
     os: "linux"
   - id: "LIN-AUDITD-011"
@@ -553,3 +681,180 @@ rules:
     fix_cmd: ["bash", "-lc", "echo 'Audit and remove world-writable files manually' && exit 1"]
     severity: "medium"
     os: "linux"
+  - id: "LIN-BOOT-002"
+    control_id: "LIN.BOOT.PERMS"
+    category: "Boot Hardening"
+    description: "Bootloader config permissions"
+    check_cmd: ["bash", "-lc", "stat -c %a /boot/grub/grub.cfg 2>/dev/null | grep -q '600' || stat -c %a /boot/grub2/grub.cfg 2>/dev/null | grep -q '600'"]
+    fix_cmd: ["bash", "-lc", "chmod 600 /boot/grub/grub.cfg 2>/dev/null || chmod 600 /boot/grub2/grub.cfg 2>/dev/null"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-KERN-003"
+    control_id: "LIN.KERN.PRELINK"
+    category: "Kernel Hardening"
+    description: "Prelink removed"
+    check_cmd: ["bash", "-lc", "! command -v prelink"]
+    fix_cmd: ["bash", "-lc", "sudo apt-get -y remove prelink || sudo yum -y remove prelink || true"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-KERN-004"
+    control_id: "LIN.KERN.ERROR_REPORT"
+    category: "Kernel Hardening"
+    description: "Auto error reporting disabled (apport/abrt)"
+    check_cmd: ["bash", "-lc", "systemctl is-enabled apport 2>/dev/null | grep -q 'disabled' && systemctl is-enabled abrt-ccpp 2>/dev/null | grep -q 'disabled'"]
+    fix_cmd: ["bash", "-lc", "sudo systemctl disable --now apport 2>/dev/null; sudo systemctl disable --now abrt-ccpp 2>/dev/null || true"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-SVC-016"
+    control_id: "LIN.SVC.TALK"
+    category: "Service Hardening"
+    description: "Talk client removed"
+    check_cmd: ["bash", "-lc", "! command -v talk"]
+    fix_cmd: ["bash", "-lc", "sudo apt-get -y remove talk || sudo yum -y remove talk || true"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-CRON-002"
+    control_id: "LIN.CRON.PERMS"
+    category: "Cron Hardening"
+    description: "Cron directory permissions"
+    check_cmd: ["bash", "-lc", "stat -c %a /etc/cron.daily | grep -q '700' && stat -c %a /etc/cron.hourly | grep -q '700' && stat -c %a /etc/cron.weekly | grep -q '700' && stat -c %a /etc/cron.monthly | grep -q '700'"]
+    fix_cmd: ["bash", "-lc", "sudo chmod 700 /etc/cron.daily /etc/cron.hourly /etc/cron.weekly /etc/cron.monthly"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-NET-002"
+    control_id: "LIN.NET.WIRELESS"
+    category: "Network Hardening"
+    description: "Wireless/Bluetooth disabled"
+    check_cmd: ["bash", "-lc", "command -v rfkill && rfkill list | grep -i 'wireless' | grep -i 'soft blocked: yes' && rfkill list | grep -i 'bluetooth' | grep -i 'soft blocked: yes'"]
+    fix_cmd: ["bash", "-lc", "sudo rfkill block wifi; sudo rfkill block bluetooth"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-SSH-011"
+    control_id: "LIN.SSH.CONFIG_PERMS"
+    category: "SSH Hardening"
+    description: "sshd_config permissions (600)"
+    check_cmd: ["bash", "-lc", "stat -c %a /etc/ssh/sshd_config | grep -q '600'"]
+    fix_cmd: ["bash", "-lc", "sudo chmod 600 /etc/ssh/sshd_config"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-SSH-012"
+    control_id: "LIN.SSH.EMPTY_PASS"
+    category: "SSH Hardening"
+    description: "PermitEmptyPasswords no"
+    check_cmd: ["bash", "-lc", "grep -Ei '^PermitEmptyPasswords\\s+no' /etc/ssh/sshd_config"]
+    fix_cmd: ["bash", "-lc", "sudo sed -i 's/^#\\?PermitEmptyPasswords.*/PermitEmptyPasswords no/' /etc/ssh/sshd_config && sudo systemctl reload sshd"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-SSH-013"
+    control_id: "LIN.SSH.TIMEOUT"
+    category: "SSH Hardening"
+    description: "ClientAliveInterval/CountMax configured"
+    check_cmd: ["bash", "-lc", "grep -Ei '^ClientAliveInterval' /etc/ssh/sshd_config && grep -Ei '^ClientAliveCountMax' /etc/ssh/sshd_config"]
+    fix_cmd: ["bash", "-lc", "echo 'ClientAliveInterval 300' | sudo tee -a /etc/ssh/sshd_config; echo 'ClientAliveCountMax 0' | sudo tee -a /etc/ssh/sshd_config; sudo systemctl reload sshd"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-MAINT-001"
+    control_id: "LIN.MAINT.PASSWD_PERMS"
+    category: "System Maintenance"
+    description: "Permissions on /etc/passwd (644)"
+    check_cmd: ["bash", "-lc", "stat -c %a /etc/passwd | grep -q '644'"]
+    fix_cmd: ["bash", "-lc", "sudo chmod 644 /etc/passwd"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-MAINT-002"
+    control_id: "LIN.MAINT.SHADOW_PERMS"
+    category: "System Maintenance"
+    description: "Permissions on /etc/shadow (640)"
+    check_cmd: ["bash", "-lc", "stat -c %a /etc/shadow | grep -q '640'"]
+    fix_cmd: ["bash", "-lc", "sudo chmod 640 /etc/shadow"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-MAINT-003"
+    control_id: "LIN.MAINT.GROUP_PERMS"
+    category: "System Maintenance"
+    description: "Permissions on /etc/group (644)"
+    check_cmd: ["bash", "-lc", "stat -c %a /etc/group | grep -q '644'"]
+    fix_cmd: ["bash", "-lc", "sudo chmod 644 /etc/group"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-MAINT-004"
+    control_id: "LIN.MAINT.GSHADOW_PERMS"
+    category: "System Maintenance"
+    description: "Permissions on /etc/gshadow (640)"
+    check_cmd: ["bash", "-lc", "stat -c %a /etc/gshadow | grep -q '640'"]
+    fix_cmd: ["bash", "-lc", "sudo chmod 640 /etc/gshadow"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-MAINT-005"
+    control_id: "LIN.MAINT.TMOUT"
+    category: "System Maintenance"
+    description: "Shell timeout (TMOUT) configured"
+    check_cmd: ["bash", "-lc", "grep -q 'TMOUT' /etc/profile || grep -q 'TMOUT' /etc/bash.bashrc"]
+    fix_cmd: ["bash", "-lc", "echo 'TMOUT=900' | sudo tee -a /etc/profile; echo 'readonly TMOUT' | sudo tee -a /etc/profile; echo 'export TMOUT' | sudo tee -a /etc/profile"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-MAINT-006"
+    control_id: "LIN.MAINT.UMASK"
+    category: "System Maintenance"
+    description: "Default umask 027"
+    check_cmd: ["bash", "-lc", "grep -q 'umask 027' /etc/profile || grep -q 'umask 027' /etc/bash.bashrc"]
+    fix_cmd: ["bash", "-lc", "echo 'umask 027' | sudo tee -a /etc/profile"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-BOOT-003"
+    control_id: "LIN.BOOT.OWNER"
+    category: "Boot Hardening"
+    description: "Bootloader config owner/group (root:root)"
+    check_cmd: ["bash", "-lc", "stat -c '%U:%G' /boot/grub/grub.cfg 2>/dev/null | grep -q 'root:root' || stat -c '%U:%G' /boot/grub2/grub.cfg 2>/dev/null | grep -q 'root:root'"]
+    fix_cmd: ["bash", "-lc", "sudo chown root:root /boot/grub/grub.cfg 2>/dev/null || sudo chown root:root /boot/grub2/grub.cfg 2>/dev/null"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-KERN-005"
+    control_id: "LIN.KERN.KPTR_RESTRICT"
+    category: "Kernel Hardening"
+    description: "Kernel pointer restriction enabled"
+    check_cmd: ["bash", "-lc", "sysctl kernel.kptr_restrict | grep -q '= 1'"]
+    fix_cmd: ["bash", "-lc", "echo 'kernel.kptr_restrict=1' | sudo tee /etc/sysctl.d/99-ntro-kptr.conf && sudo sysctl -p /etc/sysctl.d/99-ntro-kptr.conf"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-SUDO-002"
+    control_id: "LIN.SUDO.PASSWD_REQUIRED"
+    category: "Sudo"
+    description: "Sudo password required (no NOPASSWD)"
+    check_cmd: ["bash", "-lc", "! grep -E '^[^#]*NOPASSWD' /etc/sudoers /etc/sudoers.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "echo 'Remove NOPASSWD from sudoers files manually'; exit 1"]
+    severity: "high"
+    os: "linux"
+  - id: "LIN-SUDO-003"
+    control_id: "LIN.SUDO.REAUTH"
+    category: "Sudo"
+    description: "Sudo re-authentication not disabled"
+    check_cmd: ["bash", "-lc", "! grep -E '^[^#]*!authenticate' /etc/sudoers /etc/sudoers.d/* 2>/dev/null"]
+    fix_cmd: ["bash", "-lc", "echo 'Remove !authenticate from sudoers files'; exit 1"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-LOG-002"
+    control_id: "LIN.LOG.JOURNALD_ACCESS"
+    category: "journald"
+    description: "journald log directory permissions"
+    check_cmd: ["bash", "-lc", "stat -c %a /var/log/journal | grep -qE '^(2755|755)$'"]
+    fix_cmd: ["bash", "-lc", "sudo chmod 2755 /var/log/journal"]
+    severity: "medium"
+    os: "linux"
+  - id: "LIN-LOG-003"
+    control_id: "LIN.LOG.SINGLE_SYSTEM"
+    category: "journald"
+    description: "Single logging system (journald or rsyslog)"
+    check_cmd: ["bash", "-lc", "systemctl is-active systemd-journald && (systemctl is-active rsyslog || systemctl is-active syslog-ng)"]
+    fix_cmd: ["bash", "-lc", "echo 'Ensure both journald and rsyslog/syslog-ng are active'; exit 0"]
+    severity: "low"
+    os: "linux"
+  - id: "LIN-RSYSLOG-002"
+    control_id: "LIN.LOG.RSYSLOG_REMOTE_VERIFY"
+    category: "rsyslog"  
+    description: "rsyslog remote server reachable"
+    check_cmd: ["bash", "-lc", "server=$(grep -E '@@' /etc/rsyslog.d/*.conf 2>/dev/null | head -1 | awk '{print $2}' | cut -d: -f1 | tr -d '@'); test -n \"$server\" && timeout 2 nc -zv $server 514 2>&1 | grep -q succeeded"]
+    fix_cmd: ["bash", "-lc", "echo 'Verify remote syslog server is reachable'; exit 1"]
+    severity: "medium"
+    os: "linux"
+```

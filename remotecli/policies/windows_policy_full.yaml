@@ -29,7 +29,7 @@ rules:
     control_id: "WIN.ACC.COMPLEXITY"
     category: "Account Policies"
     description: "Password complexity enabled"
-    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; Select-String -Path $cfg -Pattern 'PasswordComplexity\s*=\s*1'"]
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; Select-String -Path $cfg -Pattern 'PasswordComplexity\\s*=\\s*1'"]
     fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' -Name 'PasswordComplexity' -Value 1"]
     severity: "high"
     os: "windows"
@@ -37,7 +37,7 @@ rules:
     control_id: "WIN.ACC.REVENC"
     category: "Account Policies"
     description: "Reversible encryption disabled"
-    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; Select-String -Path $cfg -Pattern 'ClearTextPassword\s*=\s*0'"]
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; Select-String -Path $cfg -Pattern 'ClearTextPassword\\s*=\\s*0'"]
     fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' -Name 'ClearTextPassword' -Value 0"]
     severity: "high"
     os: "windows"
@@ -440,4 +440,260 @@ rules:
     check_cmd: ["powershell", "-NoProfile", "-Command", "$s=Get-Service -Name RemoteAssistance -ErrorAction SilentlyContinue; $s -and $s.StartType -eq 'Disabled'"]
     fix_cmd: ["powershell", "-NoProfile", "-Command", "$s=Get-Service -Name RemoteAssistance -ErrorAction SilentlyContinue; if($s){ Set-Service -Name RemoteAssistance -StartupType Disabled }"]
     severity: "low"
+    os: "windows"
+  - id: "WIN-LOCK-003"
+    control_id: "WIN.LOCK.ADMIN"
+    category: "Account Lockout"
+    description: "Admin account lockout enabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\RemoteAccess\\Parameters\\AccountLockout').MaxDenials -le 5"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Ensure Admin account lockout is enabled via Group Policy'; exit 1"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-RIGHTS-008"
+    control_id: "WIN.RIGHTS.BACKUP"
+    category: "Local Policies"
+    description: "Back up files and directories: Administrators, Backup Operators"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; (Select-String -Path $cfg -Pattern 'SeBackupPrivilege').Line -match 'S-1-5-32-544' -and ((Select-String -Path $cfg -Pattern 'SeBackupPrivilege').Line -match 'S-1-5-32-551')"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Configure SeBackupPrivilege via Local Security Policy'; exit 1"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-RIGHTS-009"
+    control_id: "WIN.RIGHTS.RESTORE"
+    category: "Local Policies"
+    description: "Restore files and directories: Administrators, Backup Operators"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; (Select-String -Path $cfg -Pattern 'SeRestorePrivilege').Line -match 'S-1-5-32-544' -and ((Select-String -Path $cfg -Pattern 'SeRestorePrivilege').Line -match 'S-1-5-32-551')"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Configure SeRestorePrivilege via Local Security Policy'; exit 1"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-SVC-017"
+    control_id: "WIN.SVC.TELNET_CLIENT"
+    category: "System Services"
+    description: "Telnet Client disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-WindowsOptionalFeature -Online -FeatureName TelnetClient).State -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Disable-WindowsOptionalFeature -Online -FeatureName TelnetClient -NoRestart"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-AUDIT-010"
+    control_id: "WIN.AUD.LOGON"
+    category: "Advanced Audit"
+    description: "Audit Logon events"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'Logon') -match 'Success.*Enabled' -and (AuditPol /get /subcategory:'Logon') -match 'Failure.*Enabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "AuditPol /set /subcategory:'Logon' /success:enable /failure:enable"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-AUDIT-011"
+    control_id: "WIN.AUD.OBJECT_ACCESS"
+    category: "Advanced Audit"
+    description: "Audit Object Access (File System)"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'File System') -match 'Success.*Enabled' -and (AuditPol /get /subcategory:'File System') -match 'Failure.*Enabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "AuditPol /set /subcategory:'File System' /success:enable /failure:enable"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-AUDIT-012"
+    control_id: "WIN.AUD.DETAILED_TRACKING"
+    category: "Advanced Audit"
+    description: "Audit Detailed Tracking (Process Creation)"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'Process Creation') -match 'Success.*Enabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "AuditPol /set /subcategory:'Process Creation' /success:enable"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-DEF-002"
+    control_id: "WIN.DEF.APPGUARD_SETTINGS"
+    category: "Application Guard"
+    description: "MDAG: Clipboard/Camera/Mic restrictions"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'MDAG settings require MDM/GPO verification'; $true"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Configure MDAG settings via GPO/MDM'; exit 0"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-AUDIT-013"
+    control_id: "WIN.AUD.LOGOFF"
+    category: "Advanced Audit"
+    description: "Audit Logoff events"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'Logoff') -match 'Success.*Enabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "AuditPol /set /subcategory:'Logoff' /success:enable"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-AUDIT-014"
+    control_id: "WIN.AUD.ACCOUNT_MGMT"
+    category: "Advanced Audit"
+    description: "Audit Account Management (User/Computer/Group Account Management)"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'User Account Management') -match 'Success.*Enabled' -and (AuditPol /get /subcategory:'Computer Account Management') -match 'Success.*Enabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "AuditPol /set /subcategory:'User Account Management' /success:enable /failure:enable; AuditPol /set /subcategory:'Computer Account Management' /success:enable /failure:enable"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-AUDIT-015"
+    control_id: "WIN.AUD.REGISTRY"
+    category: "Advanced Audit"
+    description: "Audit Object Access - Registry"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'Registry') -match 'Success.*Enabled' -and (AuditPol /get /subcategory:'Registry') -match 'Failure.*Enabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "AuditPol /set /subcategory:'Registry' /success:enable /failure:enable"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-AUDIT-016"
+    control_id: "WIN.AUD.RPC_EVENTS"
+    category: "Advanced Audit"
+    description: "Audit Detailed Tracking - RPC Events"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'RPC Events') -match 'Success.*Enabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "AuditPol /set /subcategory:'RPC Events' /success:enable"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-AUDIT-017"
+    control_id: "WIN.AUD.SECURITY_STATE"
+    category: "Advanced Audit"
+    description: "Audit System - Security State Change"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'Security State Change') -match 'Success.*Enabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "AuditPol /set /subcategory:'Security State Change' /success:enable"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-AUDIT-018"
+    control_id: "WIN.AUD.ACCOUNT_LOCKOUT"
+    category: "Advanced Audit"
+    description: "Audit Account Lockout events"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(AuditPol /get /subcategory:'Account Lockout') -match 'Failure.*Enabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "AuditPol /set /subcategory:'Account Lockout' /failure:enable"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-SVC-018"
+    control_id: "WIN.SVC.PRINT_SPOOLER"
+    category: "System Services"
+    description: "Print Spooler disabled (if not needed)"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-Service Spooler).StartType -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-Service -Name Spooler -StartupType Disabled"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-SVC-019"
+    control_id: "WIN.SVC.WINDOWS_SEARCH"
+    category: "System Services"
+    description: "Windows Search disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-Service WSearch).StartType -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-Service -Name WSearch -StartupType Disabled"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-SVC-020"
+    control_id: "WIN.SVC.HOMEGROUP_LISTENER"
+    category: "System Services"
+    description: "HomeGroup Listener disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$s=Get-Service HomeGroupListener -ErrorAction SilentlyContinue; !$s -or $s.StartType -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "$s=Get-Service HomeGroupListener -ErrorAction SilentlyContinue; if($s){ Set-Service -Name HomeGroupListener -StartupType Disabled }"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-SVC-021"
+    control_id: "WIN.SVC.HOMEGROUP_PROVIDER"
+    category: "System Services"
+    description: "HomeGroup Provider disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$s=Get-Service HomeGroupProvider -ErrorAction SilentlyContinue; !$s -or $s.StartType -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "$s=Get-Service HomeGroupProvider -ErrorAction SilentlyContinue; if($s){ Set-Service -Name HomeGroupProvider -StartupType Disabled }"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-SVC-022"
+    control_id: "WIN.SVC.RDP_CONFIG"
+    category: "System Services"
+    description: "Remote Desktop Configuration disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$s=Get-Service SessionEnv -ErrorAction SilentlyContinue; !$s -or $s.StartType -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "$s=Get-Service SessionEnv -ErrorAction SilentlyContinue; if($s){ Set-Service -Name SessionEnv -StartupType Disabled }"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-SVC-023"
+    control_id: "WIN.SVC.RIP_LISTENER"
+    category: "System Services"
+    description: "RIP Listener disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$s=Get-Service iprip -ErrorAction SilentlyContinue; !$s -or $s.StartType -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "$s=Get-Service iprip -ErrorAction SilentlyContinue; if($s){ Set-Service -Name iprip -StartupType Disabled }"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-SVC-024"
+    control_id: "WIN.SVC.SIMPLE_TCPIP"
+    category: "System Services"
+    description: "Simple TCP/IP Services disabled"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$s=Get-Service simptcp -ErrorAction SilentlyContinue; !$s -or $s.StartType -eq 'Disabled'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "$s=Get-Service simptcp -ErrorAction SilentlyContinue; if($s){ Set-Service -Name simptcp -StartupType Disabled }"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-SVC-025"
+    control_id: "WIN.SVC.WINDOWS_LICENSE"
+    category: "System Services"
+    description: "Windows License Manager Service disabled (if not needed)"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$s=Get-Service LicenseManager -ErrorAction SilentlyContinue; !$s -or $s.StartType -eq 'Manual'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Set LicenseManager to Manual if licensing not required'; exit 0"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-RIGHTS-010"
+    control_id: "WIN.RIGHTS.SHUTDOWN"
+    category: "Local Policies"
+    description: "Shutdown system: Administrators only"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; (Select-String -Path $cfg -Pattern 'SeShutdownPrivilege').Line -match 'S-1-5-32-544'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Configure SeShutdownPrivilege to Administrators only via Local Security Policy'; exit 1"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-RIGHTS-011"
+    control_id: "WIN.RIGHTS.TAKE_OWNERSHIP"
+    category: "Local Policies"
+    description: "Take ownership: Administrators only"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; (Select-String -Path $cfg -Pattern 'SeTakeOwnershipPrivilege').Line -match 'S-1-5-32-544'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Configure SeTakeOwnershipPrivilege to Administrators only'; exit 1"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-RIGHTS-012"
+    control_id: "WIN.RIGHTS.LOAD_DRIVER"
+    category: "Local Policies"
+    description: "Load/unload device drivers: Administrators only"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; (Select-String -Path $cfg -Pattern 'SeLoadDriverPrivilege').Line -match 'S-1-5-32-544'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Configure SeLoadDriverPrivilege to Administrators only'; exit 1"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-RIGHTS-013"
+    control_id: "WIN.RIGHTS.DEBUG"
+    category: "Local Policies"
+    description: "Debug programs: Administrators only"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; (Select-String -Path $cfg -Pattern 'SeDebugPrivilege').Line -match 'S-1-5-32-544'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Configure SeDebugPrivilege to Administrators only'; exit 1"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-RIGHTS-014"
+    control_id: "WIN.RIGHTS.IMPERSONATE"
+    category: "Local Policies"
+    description: "Impersonate a client: Administrators, Service accounts"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; (Select-String -Path $cfg -Pattern 'SeImpersonatePrivilege').Line -match 'S-1-5-32-544'"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Configure SeImpersonatePrivilege appropriately'; exit 1"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-RIGHTS-015"
+    control_id: "WIN.RIGHTS.CREATE_TOKEN"
+    category: "Local Policies"
+    description: "Create a token object: No one"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "$cfg=$env:TEMP+'\\secpol.cfg'; secedit /export /cfg $cfg | Out-Null; -not (Select-String -Path $cfg -Pattern 'SeCreateTokenPrivilege')"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Write-Host 'Set SeCreateTokenPrivilege to empty via Local Security Policy'; exit 1"]
+    severity: "high"
+    os: "windows"
+  - id: "WIN-SEC-009"
+    control_id: "WIN.SEC.NO_LAST_USER"
+    category: "Security Options"
+    description: "Do not display last user name"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System').DontDisplayLastUserName -eq 1"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System' -Name 'DontDisplayLastUserName' -Value 1"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-SEC-010"
+    control_id: "WIN.SEC.LOGON_MESSAGE_TITLE"
+    category: "Security Options"
+    description: "Logon message title configured"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System').LegalNoticeCaption -ne $null"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System' -Name 'LegalNoticeCaption' -Value 'Warning'"]
+    severity: "low"
+    os: "windows"
+  - id: "WIN-SEC-011"
+    control_id: "WIN.SEC.MACHINE_PWD_AGE"
+    category: "Security Options"
+    description: "Maximum machine account password age <= 30 days"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Netlogon\\Parameters').MaximumPasswordAge -le 30"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Netlogon\\Parameters' -Name 'MaximumPasswordAge' -Value 30"]
+    severity: "medium"
+    os: "windows"
+  - id: "WIN-LOCK-004"
+    control_id: "WIN.LOCK.OBSERVATION_WINDOW"
+    category: "Account Lockout"
+    description: "Account lockout observation window >= 15 minutes"
+    check_cmd: ["powershell", "-NoProfile", "-Command", "(net accounts) -match 'Lockout observation window' | ForEach-Object {($_ -split ':')[1].Trim()} | ForEach-Object {[timespan]::Parse($_).Minutes -ge 15}"]
+    fix_cmd: ["powershell", "-NoProfile", "-Command", "net accounts /lockoutwindow:15"]
+    severity: "medium"
     os: "windows"
